@@ -1,7 +1,9 @@
 import time
+
+import numpy as np
 import pygame
 import math
-
+import matplotlib.pyplot as plt
 
 pygame.init()
 font = pygame.font.SysFont(None, 24)
@@ -31,8 +33,9 @@ earth_sun = 1.5 * 10**11
 planet_list = []
 
 class Engine:
-    def __init__(self, time_speed):
+    def __init__(self, time_speed, change_speed):
         self.time_speed = time_speed
+        self.change_speed = change_speed
 
     def find_E(self, M, r, initial_guess, tolerance=1e-6, max_iterations=100):
         E = initial_guess
@@ -47,10 +50,10 @@ class Engine:
     def KeplersMaths(self, StarMass, planetSpeed, planetMass, periapsis, time):
         print(StarMass, planetMass, planetSpeed, periapsis, time)
         majorA = abs(1 / ((2 / periapsis) - (planetSpeed ** 2 / (GraviConst * StarMass))))
-        eccentricity = (majorA / periapsis) - 1
-        print(majorA)
+        eccentricity = -((periapsis/majorA) - 1)
+        majorB = majorA*math.sqrt(1-eccentricity**2)
         Period = (2 * math.pi) * math.sqrt((majorA ** 3) / (StarMass * GraviConst))
-        print(Period)
+        print("Period", Period)
         print("eccentricity", eccentricity)
 
         meanMotion = (math.pi * 2) / Period
@@ -62,11 +65,18 @@ class Engine:
         planetX = heliocentricDist * math.cos(trueAnomaly)
         planetY = heliocentricDist * math.sin(trueAnomaly)
 
-        Aphelion = (1 + eccentricity) * majorA
+        print("planet x-{0} and y-{1} in {2}".format(planetX, planetY, time))
 
+        #additional parametrs
+        Aphelion = (1 + eccentricity) * majorA
+        #Velocity if eccentrycity 0
+        Vis_Viva = math.sqrt(GraviConst*StarMass*((2/periapsis)-(1/majorA)))
+        VifE0 = math.sqrt((GraviConst*StarMass)/majorA)
+
+        print(VifE0)
         print(Period, Aphelion)
 
-        return planetX, planetY
+        return planetX, planetY, Period, majorA, majorB
 
 class Text_controle:
     def __init__(self):
@@ -104,7 +114,7 @@ class Text_controle:
             screen.blit(trailDrawOn, (screen.get_width() - 150, 60))
 
     def baseTextRender(self):
-        img3 = font.render("{0} frame".format(frames), True, (0, 255, 0))
+        img3 = font.render("{0} seconds".format(simulation_time), True, (0, 255, 0))
         img4 = font.render("x-{0} y-{1}".format(FindX, FindY), True, (0, 255, 0))
         cameraText = font.render("camera x-{0} y-{1}, camera scale {2}".format(Camera.position[0], Camera.position[1], Camera.scale), True, (0, 255, 0))
         TimeSpeedText = font.render("time speed {0}s/f".format(Engine.time_speed), True, (0, 255, 0))
@@ -118,13 +128,15 @@ class Text_controle:
         t2 = font.render("speed {0} m/s".format(math.sqrt(planet.vector[0]**2+planet.vector[1]**2)), True, (0, 255, 0))
         t3 = font.render("mass {0} kg".format(planet.mass), True, (0, 255, 0))
         t4 = font.render("radius {0} m".format(planet.size), True, (0, 255, 0))
-        t5 = font.render("ID - {0}".format(planet.ID), True, (0, 255, 0))
+        t5 = font.render("period of orit - {0} second".format(planet.OritPeriod), True, (0, 255, 0))
+        t6 = font.render("ID - {0}".format(planet.ID), True, (0, 255, 0))
 
         screen.blit(t1, (20, 10))
         screen.blit(t2, (20, 30))
         screen.blit(t3, (20, 50))
         screen.blit(t4, (20, 70))
         screen.blit(t5, (20, 90))
+        screen.blit(t6, (20, 110))
 
 
 class Camera:
@@ -158,6 +170,12 @@ class Planet:
         #additional parameters
         self.parent_body = None
         self.grav_vector = ()
+        if type != "star":
+            self.OrbitData = Engine.KeplersMaths(self, body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, self.position[0], 1000)
+            self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
+            self.OritPeriod = self.OrbitData[2]
+        else:
+            self.OritPeriod = 0
 
         # drawing parametrs
         self.screen_position = None
@@ -177,6 +195,13 @@ class Planet:
         if vector_draw:
             pygame.draw.line(screen, (250, 250, 0), (self.screen_position[0], self.screen_position[1]), (self.screen_position[0]+self.vector[0]*1000/Camera.scale, self.screen_position[1]+self.vector[1]*1000/Camera.scale))
             pygame.draw.line(screen, (250, 0, 250), (self.screen_position[0], self.screen_position[1]), (self.screen_position[0]+self.grav_vector[0]*100000/Camera.scale, self.screen_position[1]+self.grav_vector[1]*100000/Camera.scale), 2)
+
+    def orbit_draw_conrtole(self):
+        Orbit_Draw = pygame.Rect(
+            ((screen.get_width() / 2) + ((Camera.position[0] - (self.CentrePos[0] + self.OrbitData[3])) / Camera.scale)),
+            (screen.get_width() / 2) + ((Camera.position[1] - (self.CentrePos[1] + self.OrbitData[4])) / Camera.scale)
+            , (self.OrbitData[3] * 2) / Camera.scale, (self.OrbitData[4] * 2) / Camera.scale)
+        pygame.draw.ellipse(screen, (255, 0, 0), Orbit_Draw, width=1)
 
     def trail_control(self):
         trails_frame = frames / (100/Engine.time_speed)
@@ -226,23 +251,36 @@ def find_E(M, r, initial_guess, tolerance=1e-6, max_iterations=100):
 
 clock = pygame.time.Clock()
 frames = 0
+simulation_time = 0
 
 FindX = 0
 FindY = 0
 
 #planet initiating
-body_1 = Planet((0, 0, 0), (0, -0.01, 0), 10**10, "star", 10, "1")
-body_2 = Planet((50, 0, 0), (0, -0.1, 0), 10, "planet", 3, "2")
+body_1 = Planet((0, 0, 0), (0, 0, 0), 10**10, "star", 10, "1")
+body_2 = Planet((50, 0, 0), (0, -0.1108873302050329, 0), 10, "planet", 3, "2")
 body_3 = Planet((100, 0, 0), (0, -0.06, 0), 10, "planet", 3, "3")
 body_4 = Planet((200, 0, 0), (0, 0.04, 0), 2, "comet", 1, "4")
 body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 3, "planet", 3, "5")
+body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 1, "comet", 3, "6")
+
 
 #testBody1 = Planet((0, 0, 0), (0, 0, 0), Sun, "star", 696*10**6, "Sun")
-#testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 696*10**6, "Earth")
+#testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 6944*10**3, "Earth")
+#testBody3 = Planet((0, 150.3844*10**9), (30803, 0, 0), 7.3477*10**22, "moon", 3400*10**3, "Moon")
 
+#[Position, scale, speed of move, speed of scale]
+#Camera = Camera([0, 0, 0], 1*10**6, 1*10**11, 1*10**5)
+#Camera for small simulations
 Camera = Camera([0, 0, 0], 1, 10, 1)
 Text_controle = Text_controle()
-Engine = Engine(1)
+Engine = Engine(10, 10)
+
+#Calculating of orbit
+targetBody = body_2
+OrbitData = Engine.KeplersMaths(body_1.mass, math.sqrt(targetBody.vector[0]**2+targetBody.vector[1]**2), targetBody.mass, targetBody.position[0], 1943)
+
+CentrePos = ((targetBody.position[0]-OrbitData[3]), 0)
 
 #test
 trails = []
@@ -256,26 +294,42 @@ vector_draw = False
 
 #trail drawing parameter (base on)
 trail_draw = False
+orbit_draw = False
 
 help_window = True
+
+#simulation pause by stoping of calculating processes
+pause = False
+
+graph = []
+graph2 = []
+
+collectData = (True, 5_000, "2")
 
 while True:
     screen.fill((0, 0, 0))
 
     for body in planet_list:
         ID = body.ID
-        for x in range(0, Engine.time_speed):
-            for objects in planet_list:
-                if objects.ID != ID:
-                    gVector = body.VectorMath(objects)
+        if pause != True:
+            for x in range(0, Engine.time_speed):
+                for objects in planet_list:
+                    if objects.ID != ID:
+                        gVector = body.VectorMath(objects)
 
-                    body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
+                        body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
 
-        body.position = (body.position[0] - body.vector[0]*Engine.time_speed, body.position[1] - body.vector[1]*Engine.time_speed, 0)
+                        if ID == collectData[2] and collectData[0]:
+                            graph.append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
+                            graph2.append(gVector[1])
+
+            body.position = (body.position[0] - body.vector[0]*Engine.time_speed, body.position[1] - body.vector[1]*Engine.time_speed, 0)
 
         if trail_draw:
             body.trail_control()
 
+        if body.type != "star" and orbit_draw:
+            body.orbit_draw_conrtole()
         body.draw(Camera)
 
     #text render
@@ -295,12 +349,12 @@ while True:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_MINUS:
-                if Camera.scale > 1:
+                if Camera.scale > Camera.speed_of_scale:
                     Camera.scale -= Camera.speed_of_scale
                 elif Camera.scale > 0:
                     Camera.scale -= Camera.speed_of_scale/10
             if event.key == pygame.K_EQUALS:
-                if Camera.scale >= 1:
+                if Camera.scale >= Camera.speed_of_scale:
                     Camera.scale += Camera.speed_of_scale
                 else:
                     Camera.scale += Camera.speed_of_scale/10
@@ -313,6 +367,7 @@ while True:
                 else:
                     follow = True
                     followObj = 0
+
             #vector draw on function
             if event.key == pygame.K_v:
                 if vector_draw:
@@ -333,13 +388,26 @@ while True:
                 else:
                     trail_draw = True
 
+            if event.key == pygame.K_o:
+                if orbit_draw:
+                    orbit_draw = False
+                else:
+                    orbit_draw = True
+
+            #pause controle
+            if event.key == pygame.K_SPACE:
+                if pause:
+                    pause = False
+                else:
+                    pause = True
+
             #Time control
             if event.key == pygame.K_q:
-                if Engine.time_speed > 1:
-                    Engine.time_speed -= 1
+                if Engine.time_speed > Engine.change_speed:
+                    Engine.time_speed -= Engine.change_speed
 
             if event.key == pygame.K_e:
-                Engine.time_speed += 1
+                Engine.time_speed += Engine.change_speed
 
             if event.key == pygame.K_RIGHT:
                 if follow and followObj<len(planet_list)-1:
@@ -359,7 +427,17 @@ while True:
     if follow:
         Camera.follow(planet_list[followObj].position)
 
+    if simulation_time >= collectData[1]:
+        if collectData[0]:
+            #plt.plot(graph)
+            plt.plot(graph2)
+            #plt.axis([0, collectData[1], 0.05, 0.1])
+            plt.ylabel("speed")
+            plt.show()
+            break
+
     #print("________________")
     pygame.display.update()
     frames+=1
+    simulation_time += Engine.time_speed
     time.sleep(0.01)
