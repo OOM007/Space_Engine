@@ -37,6 +37,35 @@ class Engine:
         self.time_speed = time_speed
         self.change_speed = change_speed
 
+    def collision_detector(self, main_body, obj, Dist):
+        if Dist - (main_body.size + obj.size) <= 0:
+            Engine.time_speed = 1
+
+            mainKineticVector = (main_body.mass*(main_body.vector[0]/2), main_body.mass*(main_body.vector[1]/2), main_body.mass*(main_body.vector[2]/2))
+            objKineticVector = (obj.mass*(obj.vector[0]/2), obj.mass*(obj.vector[1]/2), obj.mass*(obj.vector[2]/2))
+
+            print("Collision detected with {0} and {1}".format(main_body.ID, obj.ID))
+
+            if main_body.mass > obj.mass and obj!="x":
+                newKineticVector = (mainKineticVector[0]-objKineticVector[0], mainKineticVector[1]-objKineticVector[1], mainKineticVector[2]-objKineticVector[2])
+                print(newKineticVector)
+                newSpeedVector = ((newKineticVector[0]*2)/main_body.mass, (newKineticVector[1]*2)/main_body.mass, (newKineticVector[2]*2)/main_body.mass)
+                print(newSpeedVector)
+                main_body.vector = (main_body.vector[0] - newSpeedVector[0], main_body.vector[1] - newSpeedVector[1], main_body.vector[2] - newSpeedVector[2])
+                print(main_body.vector)
+                planet_list.remove(obj)
+
+            elif main_body.mass < obj.mass and main_body !="x":
+                newKineticVector = (objKineticVector[0]-mainKineticVector[0], objKineticVector[1]-mainKineticVector[1],objKineticVector[2]-mainKineticVector[2])
+                print(newKineticVector)
+                newSpeedVector = ((newKineticVector[0] * 2) / obj.mass, (newKineticVector[1] * 2) / obj.mass,(newKineticVector[2] * 2) / obj.mass)
+                print(newSpeedVector)
+                obj.vector = (obj.vector[0] - newSpeedVector[0], obj.vector[1] - newSpeedVector[1],
+                                    obj.vector[2] - newSpeedVector[2])
+                print(obj.vector)
+                planet_list.remove(main_body)
+            return True
+
     def find_E(self, M, r, initial_guess, tolerance=1e-6, max_iterations=100):
         E = initial_guess
         for i in range(max_iterations):
@@ -162,6 +191,7 @@ class Camera:
 class Planet:
     def __init__(self, position, vector, mass, type, size, ID):
         planet_list.append(self)
+        orbitMaths = True
 
         #base parameters
         self.position = position
@@ -174,7 +204,7 @@ class Planet:
         #additional parameters
         self.parent_body = None
         self.grav_vector = ()
-        if type != "star":
+        if type != "star" and orbitMaths:
             self.OrbitData = Engine.KeplersMaths(self, body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
             self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
             self.OritPeriod = self.OrbitData[2]
@@ -243,6 +273,9 @@ class Planet:
 
         return gravVector, Dist
 
+    def __del__(self):
+        print("del obj")
+
 def find_E(M, r, initial_guess, tolerance=1e-6, max_iterations=100):
     E = initial_guess
     for i in range(max_iterations):
@@ -268,6 +301,8 @@ body_4 = Planet((200, 0, 0), (0, 0.04, 0), 2, "comet", 1, "4")
 body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 3, "planet", 3, "5")
 body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 1, "comet", 3, "6")
 
+#body_1 = Planet((50, 50, 0), (0, 0, 0), 100_000_000, "star", 5, "1")
+#body_2 = Planet((0, 0, 0), (-0.05, -0.05, 0), 100_0000, "planet", 3, "2")
 
 #testBody1 = Planet((0, 0, 0), (0, 0, 0), Sun, "star", 696*10**6, "Sun")
 #testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 6944*10**3, "Earth")
@@ -278,7 +313,7 @@ body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 1, "comet", 3, "6")
 #Camera for small simulations
 Camera = Camera([0, 0, 0], 1, 10, 1)
 Text_controle = Text_controle()
-Engine = Engine(10, 10)
+Engine = Engine(100, 10)
 
 #Calculating of orbit
 #targetBody = body_2
@@ -309,7 +344,7 @@ lists = []
 
 #collect data settings [On/Off, seconds, body, second_body(if need), mode]
 #modes - speed, dist to body (dist), gravitation influance (G_infl)
-collectData = (True, 5000, "4", "1", "dist")
+collectData = (True, 70000, "4", "4", "speed")
 
 #list for data init
 print(planet_list)
@@ -329,6 +364,7 @@ while True:
                 for index, objects in enumerate(planet_list):
                     if objects.ID != ID:
                         gVector = body.VectorMath(objects)
+                        Engine.collision_detector(body, objects, gVector[1])
 
                         body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
 
@@ -465,5 +501,6 @@ while True:
     #print("________________")
     pygame.display.update()
     frames+=1
-    simulation_time += Engine.time_speed
+    if pause != True:
+         simulation_time += Engine.time_speed
     time.sleep(0.01)
