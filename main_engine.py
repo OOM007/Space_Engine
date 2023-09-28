@@ -9,7 +9,7 @@ pygame.init()
 font = pygame.font.SysFont(None, 24)
 
 # Open a new window
-size = (1000, 1000)
+size = (1000, 750)
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption("test")
 
@@ -48,7 +48,7 @@ class Engine:
         return None
 
     def KeplersMaths(self, StarMass, planetSpeed, planetMass, periapsis, time):
-        print(StarMass, planetMass, planetSpeed, periapsis, time)
+        print("parametrs that given - ", StarMass, planetMass, planetSpeed, periapsis, time)
         majorA = abs(1 / ((2 / periapsis) - (planetSpeed ** 2 / (GraviConst * StarMass))))
         eccentricity = -((periapsis/majorA) - 1)
         majorB = majorA*math.sqrt(1-eccentricity**2)
@@ -73,8 +73,10 @@ class Engine:
         Vis_Viva = math.sqrt(GraviConst*StarMass*((2/periapsis)-(1/majorA)))
         VifE0 = math.sqrt((GraviConst*StarMass)/majorA)
 
-        print(VifE0)
-        print(Period, Aphelion)
+        print("mean motion", VifE0)
+        print("Aphelion, if eccentricity -x Periapsis - ", Aphelion)
+
+        print("_______________")
 
         return planetX, planetY, Period, majorA, majorB
 
@@ -90,7 +92,7 @@ class Text_controle:
         helpRander6 = font.render("Use arrow to move camera", True, (0, 255, 0))
         helpRander7 = font.render("Use +/- to scale perspective", True, (0, 255, 0))
         helpRander8 = font.render("If you want to add new object, you only might to do this in code redactor for now", True, (0, 255, 0))
-        helpRender9 = font.render("Time forwarding will be added as soon as possible", True, (0, 255, 0))
+        helpRender9 = font.render("For time forward use q/e", True, (0, 255, 0))
         screen.blit(helpRander1, (screen.get_width()/10, 0))
         screen.blit(helpRander2, (screen.get_width() / 10, 20))
         screen.blit(helpRander3, (screen.get_width() / 10, 40))
@@ -130,6 +132,7 @@ class Text_controle:
         t4 = font.render("radius {0} m".format(planet.size), True, (0, 255, 0))
         t5 = font.render("period of orit - {0} second".format(planet.OritPeriod), True, (0, 255, 0))
         t6 = font.render("ID - {0}".format(planet.ID), True, (0, 255, 0))
+        img3 = font.render("{0} seconds".format(simulation_time), True, (0, 255, 0))
 
         screen.blit(t1, (20, 10))
         screen.blit(t2, (20, 30))
@@ -137,6 +140,7 @@ class Text_controle:
         screen.blit(t4, (20, 70))
         screen.blit(t5, (20, 90))
         screen.blit(t6, (20, 110))
+        screen.blit(img3, (20, 130))
 
 
 class Camera:
@@ -171,7 +175,7 @@ class Planet:
         self.parent_body = None
         self.grav_vector = ()
         if type != "star":
-            self.OrbitData = Engine.KeplersMaths(self, body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, self.position[0], 1000)
+            self.OrbitData = Engine.KeplersMaths(self, body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
             self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
             self.OritPeriod = self.OrbitData[2]
         else:
@@ -259,7 +263,7 @@ FindY = 0
 #planet initiating
 body_1 = Planet((0, 0, 0), (0, 0, 0), 10**10, "star", 10, "1")
 body_2 = Planet((50, 0, 0), (0, -0.1108873302050329, 0), 10, "planet", 3, "2")
-body_3 = Planet((100, 0, 0), (0, -0.06, 0), 10, "planet", 3, "3")
+body_3 = Planet((100, 0, 0), (0, -0.08, 0), 10, "planet", 3, "3")
 body_4 = Planet((200, 0, 0), (0, 0.04, 0), 2, "comet", 1, "4")
 body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 3, "planet", 3, "5")
 body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 1, "comet", 3, "6")
@@ -277,10 +281,10 @@ Text_controle = Text_controle()
 Engine = Engine(10, 10)
 
 #Calculating of orbit
-targetBody = body_2
-OrbitData = Engine.KeplersMaths(body_1.mass, math.sqrt(targetBody.vector[0]**2+targetBody.vector[1]**2), targetBody.mass, targetBody.position[0], 1943)
+#targetBody = body_2
+#OrbitData = Engine.KeplersMaths(body_1.mass, math.sqrt(targetBody.vector[0]**2+targetBody.vector[1]**2), targetBody.mass, targetBody.position[0], 1943)
 
-CentrePos = ((targetBody.position[0]-OrbitData[3]), 0)
+#CentrePos = ((targetBody.position[0]-OrbitData[3]), 0)
 
 #test
 trails = []
@@ -301,10 +305,19 @@ help_window = True
 #simulation pause by stoping of calculating processes
 pause = False
 
-graph = []
-graph2 = []
+lists = []
 
-collectData = (True, 5_000, "2")
+#collect data settings [On/Off, seconds, body, second_body(if need), mode]
+#modes - speed, dist to body (dist), gravitation influance (G_infl)
+collectData = (True, 5000, "4", "1", "dist")
+
+#list for data init
+print(planet_list)
+if collectData[4] == "G_infl":
+    for x in range (0, len(planet_list)-1):
+        lists.append([])
+else:
+    lists.append([])
 
 while True:
     screen.fill((0, 0, 0))
@@ -313,15 +326,26 @@ while True:
         ID = body.ID
         if pause != True:
             for x in range(0, Engine.time_speed):
-                for objects in planet_list:
+                for index, objects in enumerate(planet_list):
                     if objects.ID != ID:
                         gVector = body.VectorMath(objects)
 
                         body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
 
+                        #collect data for graph
                         if ID == collectData[2] and collectData[0]:
-                            graph.append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
-                            graph2.append(gVector[1])
+                            if collectData[4] == "speed":
+                                lists[0].append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
+                            elif collectData[4] == "dist":
+                                if objects.ID == collectData[3]:
+                                    lists[0].append(gVector[1])
+                            elif collectData[4] == "G_infl":
+                                if index==0:
+                                    step = 0
+                                else:
+                                    step = index-1
+
+                                lists[step].append(math.sqrt(gVector[0][0] ** 2 + gVector[0][1] ** 2))
 
             body.position = (body.position[0] - body.vector[0]*Engine.time_speed, body.position[1] - body.vector[1]*Engine.time_speed, 0)
 
@@ -429,10 +453,12 @@ while True:
 
     if simulation_time >= collectData[1]:
         if collectData[0]:
-            #plt.plot(graph)
-            plt.plot(graph2)
+            graph_time = np.arange(0, collectData[1])
+            for x in range(0, len(lists)):
+                print("work")
+                plt.plot(lists[x])
             #plt.axis([0, collectData[1], 0.05, 0.1])
-            plt.ylabel("speed")
+            plt.ylabel("speed in m/s")
             plt.show()
             break
 
