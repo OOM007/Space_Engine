@@ -1,3 +1,4 @@
+import random
 import time
 
 import numpy as np
@@ -32,19 +33,52 @@ earth_sun = 1.5 * 10**11
 # list initiating
 planet_list = []
 
+#paramertrs for optimizating
+min_sim_mass = 500
+
 class Engine:
     def __init__(self, time_speed, change_speed):
         self.time_speed = time_speed
         self.change_speed = change_speed
 
-    def collision_detector(self, main_body, obj, Dist):
-        if Dist - (main_body.size + obj.size) <= 0:
-            Engine.time_speed = 1
+    def gravitation_math(self, main_mass, m1, r):
+        Force = GraviConst * ((m1 * main_mass) / r ** 2)
+        acceleration = GraviConst * (m1 / r ** 2)
+        HillRadius = r * (main_mass / (3 * (m1 + main_mass))) ** (1 / 3)
+        a = Force / main_mass
+        return Force, acceleration, HillRadius, a
+
+    def VectorMath(self, Obj1, Obj2):
+        pos1 = Obj1.position
+        pos2 = Obj2.position
+
+        DistVector = (pos1[0] - pos2[0], pos1[1] - pos2[1])
+        Dist = math.sqrt(DistVector[0] ** 2 + DistVector[1] ** 2)
+
+        grav = self.gravitation_math(Obj1.mass, Obj2.mass, Dist)
+        gravVector = (DistVector[0] / (Dist / grav[1]), DistVector[1] / (Dist / grav[1]))
+        Obj1.grav_vector = gravVector
+
+        return gravVector, Dist
+
+    def get_circle_coords(self, cx, cy, r):
+        coords = []
+        for y in range(int(-r), int(+r+1)):
+            x = (r**2 - y**2)**0.5
+
+            x1 = -x + cx
+            x2 = +x + cx
+
+            y = y + cy
+
+            coords.append([[x1, y], [x2, y]])
+        return coords
+
+    def collision_detector(self, main_body, obj):
+        if math.sqrt((main_body.position[0]-obj.position[0])**2+(main_body.position[1]-obj.position[1])**2) - (main_body.size + obj.size) <= 0:
 
             mainKineticVector = (main_body.mass*(main_body.vector[0]/2), main_body.mass*(main_body.vector[1]/2), main_body.mass*(main_body.vector[2]/2))
             objKineticVector = (obj.mass*(obj.vector[0]/2), obj.mass*(obj.vector[1]/2), obj.mass*(obj.vector[2]/2))
-
-            print("Collision detected with {0} and {1}".format(main_body.ID, obj.ID))
 
             if main_body.mass > obj.mass and obj!="x":
                 newKineticVector = (mainKineticVector[0]-objKineticVector[0], mainKineticVector[1]-objKineticVector[1], mainKineticVector[2]-objKineticVector[2])
@@ -53,7 +87,7 @@ class Engine:
                 print(newSpeedVector)
                 main_body.vector = (main_body.vector[0] - newSpeedVector[0], main_body.vector[1] - newSpeedVector[1], main_body.vector[2] - newSpeedVector[2])
                 print(main_body.vector)
-                planet_list.remove(obj)
+                del obj
 
             elif main_body.mass < obj.mass and main_body !="x":
                 newKineticVector = (objKineticVector[0]-mainKineticVector[0], objKineticVector[1]-mainKineticVector[1],objKineticVector[2]-mainKineticVector[2])
@@ -63,7 +97,7 @@ class Engine:
                 obj.vector = (obj.vector[0] - newSpeedVector[0], obj.vector[1] - newSpeedVector[1],
                                     obj.vector[2] - newSpeedVector[2])
                 print(obj.vector)
-                planet_list.remove(main_body)
+                del main_body
             return True
 
     def find_E(self, M, r, initial_guess, tolerance=1e-6, max_iterations=100):
@@ -188,8 +222,54 @@ class Camera:
     def follow(self, obj_pos):
         self.position = [obj_pos[0], obj_pos[1], 0]
 
+class Particle:
+    def __init__(self, parentBody, pos):
+        self.parent = parentBody
+        self.mass = parentBody.mass/parentBody.Ssize
+        self.vector = parentBody.vector
+        self.pos = pos
+
+    def stable_controle(self):
+        r = math.sqrt((self.parent.position[0] - self.pos[0]) ** 2 + (self.parent.position[1] - self.pos[1]) ** 2)
+        if r == 0:
+            return True
+        else:
+            pBody_infl = Engine.gravitation_math(self.mass, self.parent.mass, r)
+            starBody_infl = Engine.gravitation_math(self.mass, body_1.mass, math.sqrt((body_1.position[0]-self.pos[0])**2+(body_1.position[1]-self.pos[1])**2))
+
+            if pBody_infl[0] < starBody_infl[0]:
+                self.test_destroy()
+
+    def draw(self, camera):
+        pygame.draw.circle(screen, (250, 0, 250), (
+        ((screen.get_width() / 2) + ((camera.position[0] - self.pos[0]) / camera.scale)),
+        (screen.get_width() / 2) + ((camera.position[1] - self.pos[1]) / camera.scale)), 1 / camera.scale)
+
+    def update_pos(self):
+        self.pos = (self.pos[0]-self.vector[0]*Engine.time_speed, self.pos[1]-self.vector[1]*Engine.time_speed, 0)
+
+    def test_destroy(self):
+        self.vector = (self.vector[0], self.vector[1], 0)
+
+        new = Planet(self.pos, self.vector, self.mass, "particle", 1, str(len(planet_list)))
+
+        new.fromParticle = True
+
+        self.parent.mass -= self.mass
+
+        self.parent.particleList.remove(self)
+
+        if len(self.parent.particleList) == 0:
+            del self.parent
+
+        del self
+
+    def __del__(self):
+        pass
+
 class Planet:
     def __init__(self, position, vector, mass, type, size, ID):
+        self.fromParticle = False
         planet_list.append(self)
         orbitMaths = True
 
@@ -202,10 +282,14 @@ class Planet:
         self.ID = ID
 
         #additional parameters
+        self.Ssize = int(2*math.pi*size**2)
+        self.particleList = []
+        self.ParticleGen = False
+
         self.parent_body = None
         self.grav_vector = ()
         if type != "star" and orbitMaths:
-            self.OrbitData = Engine.KeplersMaths(self, body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
+            self.OrbitData = Engine.KeplersMaths(body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
             self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
             self.OritPeriod = self.OrbitData[2]
         else:
@@ -215,6 +299,7 @@ class Planet:
         self.screen_position = None
         self.trail = []
         self.lbl = font.render(ID, True, (0, 0, 255))
+
 
     def draw(self, camera):
         size_of_draw = self.size/camera.scale
@@ -229,6 +314,29 @@ class Planet:
         if vector_draw:
             pygame.draw.line(screen, (250, 250, 0), (self.screen_position[0], self.screen_position[1]), (self.screen_position[0]+self.vector[0]*1000/Camera.scale, self.screen_position[1]+self.vector[1]*1000/Camera.scale))
             pygame.draw.line(screen, (250, 0, 250), (self.screen_position[0], self.screen_position[1]), (self.screen_position[0]+self.grav_vector[0]*100000/Camera.scale, self.screen_position[1]+self.grav_vector[1]*100000/Camera.scale), 2)
+
+    def create_particles(self):
+        coords = Engine.get_circle_coords(self.position[0], self.position[1], self.size)
+        for coord in coords:
+            step = 1
+            tx = 0
+            ty = coord[0][1]
+            while tx <= coord[1][0]:
+                tx = coord[0][0] + step
+                self.particleList.append(Particle(self, (tx, ty)))
+                step+=1
+
+    def test_draw(self, camera):
+        coords = Engine.get_circle_coords(self.position[0], self.position[1], self.size)
+        for index, coord in enumerate(coords):
+            step = 1
+            tx = 0
+            ty = coord[0][1]
+
+            while tx <= coord[1][0]:
+                tx = coord[0][0] + step
+                pygame.draw.circle(screen, (250, 0, 250), (((screen.get_width()/2)+((camera.position[0]-tx)/camera.scale)), (screen.get_width()/2)+((camera.position[1]-ty)/camera.scale)), 1/camera.scale)
+                step+=1
 
     def orbit_draw_conrtole(self):
         Orbit_Draw = pygame.Rect(
@@ -253,28 +361,9 @@ class Planet:
             else:
                 break
 
-    def gravitation_math(self, m1, r):
-        Force = GraviConst * ((m1 * self.mass) / r ** 2)
-        acceleration = GraviConst * (m1 / r ** 2)
-        HillRadius = r * (self.mass / (3 * (m1 + self.mass))) ** (1 / 3)
-        a = Force / self.mass
-        return Force, acceleration, HillRadius, a
-
-    def VectorMath(self, Obj2):
-        pos1 = self.position
-        pos2 = Obj2.position
-
-        DistVector = (pos1[0] - pos2[0], pos1[1] - pos2[1])
-        Dist = math.sqrt(DistVector[0] ** 2 + DistVector[1] ** 2)
-
-        grav = body.gravitation_math(Obj2.mass, Dist)
-        gravVector = (DistVector[0] / (Dist / grav[1]), DistVector[1] / (Dist / grav[1]))
-        self.grav_vector = gravVector
-
-        return gravVector, Dist
-
     def __del__(self):
-        print("del obj")
+        planet_list.remove(self)
+        print("planet del")
 
 def find_E(M, r, initial_guess, tolerance=1e-6, max_iterations=100):
     E = initial_guess
@@ -293,13 +382,23 @@ simulation_time = 0
 FindX = 0
 FindY = 0
 
+#[Position, scale, speed of move, speed of scale]
+#Camera = Camera([0, 0, 0], 1*10**6, 1*10**11, 1*10**5)
+#Camera for small simulations
+Camera = Camera([0, 0, 0], 1, 10, 1)
+Text_controle = Text_controle()
+Engine = Engine(1, 10)
+
 #planet initiating
 body_1 = Planet((0, 0, 0), (0, 0, 0), 10**10, "star", 10, "1")
-body_2 = Planet((50, 0, 0), (0, -0.1108873302050329, 0), 10, "planet", 3, "2")
-body_3 = Planet((100, 0, 0), (0, -0.08, 0), 10, "planet", 3, "3")
-body_4 = Planet((200, 0, 0), (0, 0.04, 0), 2, "comet", 1, "4")
-body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 3, "planet", 3, "5")
-body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 1, "comet", 3, "6")
+body_2 = Planet((50, 0, 0), (0, -0.1108873302050329, 0), 567, "planet", 3, "2")
+body_3 = Planet((100, 0, 0), (0, -0.08, 0), 554, "planet", 3, "3")
+body_4 = Planet((200, 0, 0), (0, 0.04, 0), 89, "comet", 1, "4")
+body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 476, "planet", 3, "5")
+body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 687, "comet", 3, "6")
+
+#body_1 = Planet((0, 0, 0), (0, 0, 0), 5.973*10**24, "star", 6371000, "1")
+#body_2 = Planet((363104000, 0, 0), (0, 1023, 0), 7.347*10**22, "moon", 1737000, "2")
 
 #body_1 = Planet((50, 50, 0), (0, 0, 0), 100_000_000, "star", 5, "1")
 #body_2 = Planet((0, 0, 0), (-0.05, -0.05, 0), 100_0000, "planet", 3, "2")
@@ -308,12 +407,7 @@ body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 1, "comet", 3, "6")
 #testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 6944*10**3, "Earth")
 #testBody3 = Planet((0, 150.3844*10**9), (30803, 0, 0), 7.3477*10**22, "moon", 3400*10**3, "Moon")
 
-#[Position, scale, speed of move, speed of scale]
-#Camera = Camera([0, 0, 0], 1*10**6, 1*10**11, 1*10**5)
-#Camera for small simulations
-Camera = Camera([0, 0, 0], 1, 10, 1)
-Text_controle = Text_controle()
-Engine = Engine(100, 10)
+#Engine.get_circle_coords(body_2.position[0], body_2.position[1], body_2.size)
 
 #Calculating of orbit
 #targetBody = body_2
@@ -344,15 +438,36 @@ lists = []
 
 #collect data settings [On/Off, seconds, body, second_body(if need), mode]
 #modes - speed, dist to body (dist), gravitation influance (G_infl)
-collectData = (True, 70000, "4", "4", "speed")
+collectData = (False, 70000, "4", "4", "speed")
+
+body_2.create_particles()
+print(len(body_2.particleList))
+len_of_check = len(body_2.particleList)
+test = False
+
+for p in range(0, len_of_check):
+    if test:
+        body_2.particleList[1].stable_controle()
+    else:
+        test = body_2.particleList[0].stable_controle()
+
+print(len(body_2.particleList))
 
 #list for data init
-print(planet_list)
 if collectData[4] == "G_infl":
     for x in range (0, len(planet_list)-1):
         lists.append([])
 else:
     lists.append([])
+
+r_test = math.sqrt((body_6.position[0] - body_6.size) ** 2 + (body_6.position[1] - body_6.size) ** 2)
+pBody_infl = Engine.gravitation_math(body_6.mass, 1, r_test)
+starBody_infl = Engine.gravitation_math(body_6.mass, body_1.mass, math.sqrt((body_1.position[0]-body_6.position[0])**2+(body_1.position[1]-body_6.position[1])**2))
+print(pBody_infl, starBody_infl)
+
+if pBody_infl[0] < starBody_infl[0]:
+    print(pBody_infl[0] - starBody_infl[0])
+    print("non stable")
 
 while True:
     screen.fill((0, 0, 0))
@@ -362,11 +477,14 @@ while True:
         if pause != True:
             for x in range(0, Engine.time_speed):
                 for index, objects in enumerate(planet_list):
-                    if objects.ID != ID:
-                        gVector = body.VectorMath(objects)
-                        Engine.collision_detector(body, objects, gVector[1])
+                    Engine.collision_detector(body, objects)
+                    if objects.ID != ID and objects.mass > min_sim_mass:
+                        gVector = Engine.VectorMath(body, objects)
 
                         body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
+                        if body.particleList:
+                            for x in body.particleList:
+                                x.vector = body.vector
 
                         #collect data for graph
                         if ID == collectData[2] and collectData[0]:
@@ -383,6 +501,9 @@ while True:
 
                                 lists[step].append(math.sqrt(gVector[0][0] ** 2 + gVector[0][1] ** 2))
 
+            if body.particleList:
+                for x in body.particleList:
+                    x.update_pos()
             body.position = (body.position[0] - body.vector[0]*Engine.time_speed, body.position[1] - body.vector[1]*Engine.time_speed, 0)
 
         if trail_draw:
@@ -390,7 +511,12 @@ while True:
 
         if body.type != "star" and orbit_draw:
             body.orbit_draw_conrtole()
-        body.draw(Camera)
+
+        if body.particleList:
+            for x in body.particleList:
+                x.draw(Camera)
+        else:
+            body.draw(Camera)
 
     #text render
     if help_window:
