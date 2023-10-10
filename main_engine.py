@@ -78,28 +78,15 @@ class Engine:
     def collision_detector(self, main_body, obj):
         distance = math.sqrt((main_body.position[0]-obj.position[0])**2+(main_body.position[1]-obj.position[1])**2) - (main_body.size+obj.size)
         if distance <= 0 and main_body.CollideInProcess != True:
-            main_body.CollideInProcess = True
-            obj.CollideInProcess = True
+            v1_x = ((main_body.mass - obj.mass) * obj.vector[0]+2*(main_body.mass * main_body.vector[0]))/(main_body.mass + obj.mass)
+            v1_y = ((main_body.mass - obj.mass) * obj.vector[1]+2*(main_body.mass * main_body.vector[1]))/(main_body.mass + obj.mass)
+            v2_x = ((obj.mass - main_body.mass) * obj.vector[0]+2*(main_body.mass * main_body.vector[0]))/(main_body.mass + obj.mass)
+            v2_y = ((obj.mass - main_body.mass) * obj.vector[1]+2*(main_body.mass * main_body.vector[1]))/(main_body.mass + obj.mass)
 
-            mainKineticVector = (main_body.mass*(main_body.vector[0]/2), main_body.mass*(main_body.vector[1]/2), main_body.mass*(main_body.vector[2]/2))
-            objKineticVector = (obj.mass*(obj.vector[0]/2), obj.mass*(obj.vector[1]/2), obj.mass*(obj.vector[2]/2))
-
-            print("for {0}".format(main_body.ID))
-            main_newKineticVector = (mainKineticVector[0]-objKineticVector[0], mainKineticVector[1]-objKineticVector[1], mainKineticVector[2]-objKineticVector[2])
-            main_newSpeedVector = ((main_newKineticVector[0]*2)/main_body.mass, (main_newKineticVector[1]*2)/main_body.mass, (main_newKineticVector[2]*2)/main_body.mass)
-            print(main_newSpeedVector)
-            main_body.vector = (main_body.vector[0] - main_newSpeedVector[0], main_body.vector[1] - main_newSpeedVector[1], main_body.vector[2] - main_newSpeedVector[2])
-
-            print("for {0}".format(obj.ID))
-            obj_newKineticVector = (objKineticVector[0] - mainKineticVector[0], objKineticVector[1] - mainKineticVector[1], objKineticVector[2] - mainKineticVector[2])
-            obj_newSpeedVector = ((obj_newKineticVector[0] * 2) / obj.mass, (obj_newKineticVector[1] * 2) / obj.mass,(obj_newKineticVector[2] * 2) / obj.mass)
-            print(obj_newSpeedVector)
-            print(obj.vector)
-            obj.vector = (obj.vector[0] - obj_newSpeedVector[0], obj.vector[1] - obj_newSpeedVector[1], obj.vector[2] - obj_newSpeedVector[2])
-            print(obj.vector)
-            print("___________")
-
+            main_body.vector = (v1_x, v1_y, 0)
+            obj.vector = (v2_x, v2_y, 0)
             return True
+
         elif distance>0 and main_body.CollideInProcess:
             main_body.CollideInProcess = False
             obj.CollideInProcess = False
@@ -418,7 +405,7 @@ Engine = Engine(1, 10)
 #body_1 = Planet((0, 0, 0), (0, 0, 0), 5.973*10**24, "star", 6371000, "1")
 #body_2 = Planet((363104000, 0, 0), (0, 1023, 0), 7.347*10**22, "moon", 1737000, "2")
 
-body_1 = Planet((20, 0, 0), (0.01, 0, 0), 100_000_000, "star", 5, "1")
+body_1 = Planet((20, 3, 0), (0, 0, 0), 100_000_000, "star", 5, "1")
 body_2 = Planet((0, 0, 0), (-0.1, 0, 0), 100_000_0, "planet", 3, "2")
 
 #testBody1 = Planet((0, 0, 0), (0, 0, 0), Sun, "star", 696*10**6, "Sun")
@@ -458,7 +445,7 @@ lists = []
 #modes - speed, dist to body (dist), gravitation influance (G_infl)
 collectData = (False, 70000, "4", "4", "speed")
 
-#-body_2.create_particles()
+#body_2.create_particles()
 print(len(body_2.particleList))
 len_of_check = len(body_2.particleList)
 test = False
