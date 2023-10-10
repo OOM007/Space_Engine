@@ -1,6 +1,7 @@
 import random
 import time
 
+import numpy
 import numpy as np
 import pygame
 import math
@@ -22,18 +23,18 @@ scale = 100_000
 
 trail_lenght = 20
 
-#simple planet mass
+# simple planet mass
 Sun = 1.9885 * 10**30
 jupiter = 1.898 * 10**27
 earth = 5.9737 * 10**24
 
-#simple planet distance
+# simple planet distance
 earth_sun = 1.5 * 10**11
 
 # list initiating
 planet_list = []
 
-#paramertrs for optimizating
+# parameters for optimizating
 min_sim_mass = 500
 
 class Engine:
@@ -75,30 +76,46 @@ class Engine:
         return coords
 
     def collision_detector(self, main_body, obj):
-        if math.sqrt((main_body.position[0]-obj.position[0])**2+(main_body.position[1]-obj.position[1])**2) - (main_body.size + obj.size) <= 0:
+        distance = math.sqrt((main_body.position[0]-obj.position[0])**2+(main_body.position[1]-obj.position[1])**2) - (main_body.size+obj.size)
+        if distance <= 0 and main_body.CollideInProcess != True:
+            main_body.CollideInProcess = True
+            obj.CollideInProcess = True
 
             mainKineticVector = (main_body.mass*(main_body.vector[0]/2), main_body.mass*(main_body.vector[1]/2), main_body.mass*(main_body.vector[2]/2))
             objKineticVector = (obj.mass*(obj.vector[0]/2), obj.mass*(obj.vector[1]/2), obj.mass*(obj.vector[2]/2))
 
-            if main_body.mass > obj.mass and obj!="x":
-                newKineticVector = (mainKineticVector[0]-objKineticVector[0], mainKineticVector[1]-objKineticVector[1], mainKineticVector[2]-objKineticVector[2])
-                print(newKineticVector)
-                newSpeedVector = ((newKineticVector[0]*2)/main_body.mass, (newKineticVector[1]*2)/main_body.mass, (newKineticVector[2]*2)/main_body.mass)
-                print(newSpeedVector)
-                main_body.vector = (main_body.vector[0] - newSpeedVector[0], main_body.vector[1] - newSpeedVector[1], main_body.vector[2] - newSpeedVector[2])
-                print(main_body.vector)
-                del obj
+            print("for {0}".format(main_body.ID))
+            main_newKineticVector = (mainKineticVector[0]-objKineticVector[0], mainKineticVector[1]-objKineticVector[1], mainKineticVector[2]-objKineticVector[2])
+            main_newSpeedVector = ((main_newKineticVector[0]*2)/main_body.mass, (main_newKineticVector[1]*2)/main_body.mass, (main_newKineticVector[2]*2)/main_body.mass)
+            print(main_newSpeedVector)
+            main_body.vector = (main_body.vector[0] - main_newSpeedVector[0], main_body.vector[1] - main_newSpeedVector[1], main_body.vector[2] - main_newSpeedVector[2])
 
-            elif main_body.mass < obj.mass and main_body !="x":
-                newKineticVector = (objKineticVector[0]-mainKineticVector[0], objKineticVector[1]-mainKineticVector[1],objKineticVector[2]-mainKineticVector[2])
-                print(newKineticVector)
-                newSpeedVector = ((newKineticVector[0] * 2) / obj.mass, (newKineticVector[1] * 2) / obj.mass,(newKineticVector[2] * 2) / obj.mass)
-                print(newSpeedVector)
-                obj.vector = (obj.vector[0] - newSpeedVector[0], obj.vector[1] - newSpeedVector[1],
-                                    obj.vector[2] - newSpeedVector[2])
-                print(obj.vector)
-                del main_body
+            print("for {0}".format(obj.ID))
+            obj_newKineticVector = (objKineticVector[0] - mainKineticVector[0], objKineticVector[1] - mainKineticVector[1], objKineticVector[2] - mainKineticVector[2])
+            obj_newSpeedVector = ((obj_newKineticVector[0] * 2) / obj.mass, (obj_newKineticVector[1] * 2) / obj.mass,(obj_newKineticVector[2] * 2) / obj.mass)
+            print(obj_newSpeedVector)
+            print(obj.vector)
+            obj.vector = (obj.vector[0] - obj_newSpeedVector[0], obj.vector[1] - obj_newSpeedVector[1], obj.vector[2] - obj_newSpeedVector[2])
+            print(obj.vector)
+            print("___________")
+
             return True
+        elif distance>0 and main_body.CollideInProcess:
+            main_body.CollideInProcess = False
+            obj.CollideInProcess = False
+
+    def test(self, b1, b2, dist):
+        if dist < b1.size+b2.size:
+            b1OfBorder = (b1.position[0]-b1.size*np.sign(b1.position[0]-b2.position[0]), 0)
+            b2OfBorder = (b2.position[0]-b2.size*np.sign(b2.position[0]-b1.position[0]), 0)
+            bodyPosDif = (b1OfBorder[0]-b2OfBorder[0], b1OfBorder[1]-b2OfBorder[1])
+            b2.position = ((b2.position[0]-bodyPosDif[0]), (b2.position[1]-bodyPosDif[1]))
+            print("test", b2.position)
+            print(b1OfBorder, b2OfBorder)
+
+    def collision_reset(self, listOfPlanet):
+        for x in listOfPlanet:
+            x.CollideInProcess = False
 
     def find_E(self, M, r, initial_guess, tolerance=1e-6, max_iterations=100):
         E = initial_guess
@@ -271,7 +288,7 @@ class Planet:
     def __init__(self, position, vector, mass, type, size, ID):
         self.fromParticle = False
         planet_list.append(self)
-        orbitMaths = True
+        orbitMaths = False
 
         #base parameters
         self.position = position
@@ -282,6 +299,7 @@ class Planet:
         self.ID = ID
 
         #additional parameters
+        self.CollideInProcess = False
         self.Ssize = int(2*math.pi*size**2)
         self.particleList = []
         self.ParticleGen = False
@@ -390,18 +408,18 @@ Text_controle = Text_controle()
 Engine = Engine(1, 10)
 
 #planet initiating
-body_1 = Planet((0, 0, 0), (0, 0, 0), 10**10, "star", 10, "1")
-body_2 = Planet((50, 0, 0), (0, -0.1108873302050329, 0), 567, "planet", 3, "2")
-body_3 = Planet((100, 0, 0), (0, -0.08, 0), 554, "planet", 3, "3")
-body_4 = Planet((200, 0, 0), (0, 0.04, 0), 89, "comet", 1, "4")
-body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 476, "planet", 3, "5")
-body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 687, "comet", 3, "6")
+#body_1 = Planet((0, 0, 0), (0, 0, 0), 10**10, "star", 10, "1")
+#body_2 = Planet((50, 0, 0), (0, -0.1108873302050329, 0), 567, "planet", 3, "2")
+#body_3 = Planet((100, 0, 0), (0, -0.08, 0), 554, "planet", 3, "3")
+#body_4 = Planet((200, 0, 0), (0, 0.04, 0), 89, "comet", 1, "4")
+#body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 476, "planet", 3, "5")
+#body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 687, "comet", 3, "6")
 
 #body_1 = Planet((0, 0, 0), (0, 0, 0), 5.973*10**24, "star", 6371000, "1")
 #body_2 = Planet((363104000, 0, 0), (0, 1023, 0), 7.347*10**22, "moon", 1737000, "2")
 
-#body_1 = Planet((50, 50, 0), (0, 0, 0), 100_000_000, "star", 5, "1")
-#body_2 = Planet((0, 0, 0), (-0.05, -0.05, 0), 100_0000, "planet", 3, "2")
+body_1 = Planet((20, 0, 0), (0.01, 0, 0), 100_000_000, "star", 5, "1")
+body_2 = Planet((0, 0, 0), (-0.1, 0, 0), 100_000_0, "planet", 3, "2")
 
 #testBody1 = Planet((0, 0, 0), (0, 0, 0), Sun, "star", 696*10**6, "Sun")
 #testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 6944*10**3, "Earth")
@@ -440,7 +458,7 @@ lists = []
 #modes - speed, dist to body (dist), gravitation influance (G_infl)
 collectData = (False, 70000, "4", "4", "speed")
 
-body_2.create_particles()
+#-body_2.create_particles()
 print(len(body_2.particleList))
 len_of_check = len(body_2.particleList)
 test = False
@@ -460,15 +478,6 @@ if collectData[4] == "G_infl":
 else:
     lists.append([])
 
-r_test = math.sqrt((body_6.position[0] - body_6.size) ** 2 + (body_6.position[1] - body_6.size) ** 2)
-pBody_infl = Engine.gravitation_math(body_6.mass, 1, r_test)
-starBody_infl = Engine.gravitation_math(body_6.mass, body_1.mass, math.sqrt((body_1.position[0]-body_6.position[0])**2+(body_1.position[1]-body_6.position[1])**2))
-print(pBody_infl, starBody_infl)
-
-if pBody_infl[0] < starBody_infl[0]:
-    print(pBody_infl[0] - starBody_infl[0])
-    print("non stable")
-
 while True:
     screen.fill((0, 0, 0))
 
@@ -477,29 +486,30 @@ while True:
         if pause != True:
             for x in range(0, Engine.time_speed):
                 for index, objects in enumerate(planet_list):
-                    Engine.collision_detector(body, objects)
-                    if objects.ID != ID and objects.mass > min_sim_mass:
-                        gVector = Engine.VectorMath(body, objects)
+                    if objects.ID != ID:
+                        Engine.collision_detector(body, objects)
+                        if objects.mass > min_sim_mass:
+                            gVector = Engine.VectorMath(body, objects)
 
-                        body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
-                        if body.particleList:
-                            for x in body.particleList:
-                                x.vector = body.vector
+                            body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
+                            if body.particleList:
+                                for x in body.particleList:
+                                    x.vector = body.vector
 
-                        #collect data for graph
-                        if ID == collectData[2] and collectData[0]:
-                            if collectData[4] == "speed":
-                                lists[0].append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
-                            elif collectData[4] == "dist":
-                                if objects.ID == collectData[3]:
-                                    lists[0].append(gVector[1])
-                            elif collectData[4] == "G_infl":
-                                if index==0:
-                                    step = 0
-                                else:
-                                    step = index-1
+                            #collect data for graph
+                            if ID == collectData[2] and collectData[0]:
+                                if collectData[4] == "speed":
+                                    lists[0].append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
+                                elif collectData[4] == "dist":
+                                    if objects.ID == collectData[3]:
+                                        lists[0].append(gVector[1])
+                                elif collectData[4] == "G_infl":
+                                    if index==0:
+                                        step = 0
+                                    else:
+                                        step = index-1
 
-                                lists[step].append(math.sqrt(gVector[0][0] ** 2 + gVector[0][1] ** 2))
+                                    lists[step].append(math.sqrt(gVector[0][0] ** 2 + gVector[0][1] ** 2))
 
             if body.particleList:
                 for x in body.particleList:
@@ -629,4 +639,4 @@ while True:
     frames+=1
     if pause != True:
          simulation_time += Engine.time_speed
-    time.sleep(0.01)
+    time.sleep(0.1)
