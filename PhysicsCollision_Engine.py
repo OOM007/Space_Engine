@@ -27,7 +27,9 @@ class VerletObject():
         self.friction = 0.97
         self.groundfriction = 0.7
 
-        self.radius = 5
+        self.coord_in_grid = [0, 0]
+
+        self.radius = 2
         self.color = (0, 255, 0)
         self.mass = 1
 
@@ -38,6 +40,21 @@ class VerletObject():
 
 
         self.acceleration = pygame.Vector2(0, 0)
+
+        old_adress = "{0} {1}".format(int(self.coord_in_grid[0]), int(self.coord_in_grid[1]))
+        self.coord_in_grid = round(self.pos/grid_size)
+        adress = "{0} {1}".format(int(self.coord_in_grid[0]), int(self.coord_in_grid[1]))
+
+        new_data = grid[adress]
+        new_data.append(self)
+
+        new_old_data = grid[old_adress]
+        if  new_old_data != []:
+            new_old_data.remove(self)
+            grid.update({old_adress:new_old_data})
+
+        grid.update({adress:new_data})
+
 
     def accelerate(self, acc):
         self.acceleration += acc
@@ -80,14 +97,18 @@ class VerletObject():
         pygame.draw.circle(screen, (0, 255, 255), self.pos, self.radius)
 
 dot1 = VerletObject(500, 200, 1, 1)
-dot2 = VerletObject(500, 300, 1, 1)
+dot2 = VerletObject(100, 200, 1, 1)
 
 dots = []
-grid = []
-grid_stepX = size[0]/20
-grid_stepY = size[1]/20
+grid = {}
+grid_size = 5
+grid_stepX = size[0]/grid_size
+grid_stepY = size[1]/grid_size
 
-print(grid)
+for y in range(0, int(grid_stepY)):
+    for x in range(0, int(grid_stepX)):
+        grid.update({"{0} {1}".format(x, y):[]})
+
 dots.append(dot1)
 dots.append(dot2)
 
@@ -102,19 +123,16 @@ Collision = False
 if len(dots) > 1:
     collision = True
 
-dotsNumber = 1000
+dotsNumber = 500
 spawnRate = 1
 spawnTimer = 1
 
 check = []
 
-while not exit:
-    grid.clear()
+clock = pygame.time.Clock()
 
-    for y in range(0, int(grid_stepY)):
-        grid.append([])
-        for x in range(0, int(grid_stepX)):
-            grid[y].append([])
+while not exit:
+    screen.fill((0, 0, 0))
 
     if spawnTimer == 0 and dotsNumber != 0:
         dots.append(VerletObject(500, 400, 1, 1))
@@ -122,39 +140,32 @@ while not exit:
         spawnTimer = spawnRate
 
     for step in range(0, sub_step):
-        screen.fill((0, 0, 0))
-        for dot in dots:
-            grid_pos = pygame.Vector2(int(round(dot.pos.x/20)), int(round(dot.pos.y/20)))
-            grid[int(grid_pos.x)][int(grid_pos.y)].append(dot)
-
-            if len(grid[int(grid_pos.x)][int(grid_pos.y)]) > 1:
-                check.append((grid_pos.x, grid_pos.y))
-
-        # clear duplicates
-        check = list(set(check))
 
         for index, x in enumerate(dots):
             x.accelerate(gravity)
             x.update()
-            x.constraint_circle(300, 300, 300)
+            x.constraint_circle(300, 500, 300)
 
-            grid_pos = ((int(round(x.pos.x/20))), int(round(x.pos.y/20)))
+            grid_obj = (int(x.coord_in_grid[0]), int(x.coord_in_grid[1]))
 
-            if grid[grid_pos[0]][grid_pos[1]] == []:
-                pass
-            else:
-                for obj in grid[grid_pos[0]][grid_pos[1]]:
-                    if obj == x:
-                        pass
-                    else:
-                        x.collision(obj)
+            for ty in range(0, 3):
+                for tx in range(0, 3):
+                    objects = grid["{0} {1}".format((grid_obj[0] - (tx - 1)), grid_obj[1] - (ty - 1))]
+                    if len(objects) > 0:
+                        for test in objects:
+                            if test != x:
+                                x.collision(test)
 
-            x.draw()
+    for x in dots:
+        x.draw()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit = True
 
+    pygame.display.set_caption(str(clock.get_fps()))
     spawnTimer -= 1
     pygame.display.update()
     time.sleep(1/frameRate)
+
+    clock.tick(60)
