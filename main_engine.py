@@ -7,6 +7,13 @@ import pygame
 import math
 import matplotlib.pyplot as plt
 
+# get other functions
+import Body_Functions
+from Engine_controle import Engine as Engine
+from Engine_controle import Camera as Camera
+from Text_controle_main import Text_controle
+from Body_Functions import *
+
 pygame.init()
 font = pygame.font.SysFont(None, 24)
 
@@ -37,349 +44,6 @@ planet_list = []
 # parameters for optimizating
 min_sim_mass = 500
 
-class Engine:
-    def __init__(self, time_speed, change_speed):
-        self.time_speed = time_speed
-        self.change_speed = change_speed
-
-    def gravitation_math(self, main_mass, m1, r):
-        Force = GraviConst * ((m1 * main_mass) / r ** 2)
-        acceleration = GraviConst * (m1 / r ** 2)
-        HillRadius = r * (main_mass / (3 * (m1 + main_mass))) ** (1 / 3)
-        a = Force / main_mass
-        return Force, acceleration, HillRadius, a
-
-    def VectorMath(self, Obj1, Obj2):
-        pos1 = Obj1.position
-        pos2 = Obj2.position
-
-        DistVector = (pos1[0] - pos2[0], pos1[1] - pos2[1])
-        Dist = math.sqrt(DistVector[0] ** 2 + DistVector[1] ** 2)
-
-        grav = self.gravitation_math(Obj1.mass, Obj2.mass, Dist)
-        gravVector = (DistVector[0] / (Dist / grav[1]), DistVector[1] / (Dist / grav[1]))
-        Obj1.grav_vector = gravVector
-
-        return gravVector, Dist
-
-    def get_circle_coords(self, cx, cy, r):
-        coords = []
-        for y in range(int(-r), int(+r+1)):
-            x = (r**2 - y**2)**0.5
-
-            x1 = -x + cx
-            x2 = +x + cx
-
-            y = y + cy
-
-            coords.append([[x1, y], [x2, y]])
-        return coords
-
-    def collision_detector(self, main_body, obj):
-        distance = math.sqrt((main_body.position[0]-obj.position[0])**2+(main_body.position[1]-obj.position[1])**2) - (main_body.size+obj.size)
-        if distance <= 0 and main_body.CollideInProcess != True:
-            v1_x = ((main_body.mass - obj.mass) * obj.vector[0]+2*(main_body.mass * main_body.vector[0]))/(main_body.mass + obj.mass)
-            v1_y = ((main_body.mass - obj.mass) * obj.vector[1]+2*(main_body.mass * main_body.vector[1]))/(main_body.mass + obj.mass)
-            v2_x = ((obj.mass - main_body.mass) * obj.vector[0]+2*(main_body.mass * main_body.vector[0]))/(main_body.mass + obj.mass)
-            v2_y = ((obj.mass - main_body.mass) * obj.vector[1]+2*(main_body.mass * main_body.vector[1]))/(main_body.mass + obj.mass)
-
-            main_body.vector = (v1_x, v1_y, 0)
-            obj.vector = (v2_x, v2_y, 0)
-            return True
-
-        elif distance>0 and main_body.CollideInProcess:
-            main_body.CollideInProcess = False
-            obj.CollideInProcess = False
-
-    def test(self, b1, b2, dist):
-        if dist < b1.size+b2.size:
-            b1OfBorder = (b1.position[0]-b1.size*np.sign(b1.position[0]-b2.position[0]), 0)
-            b2OfBorder = (b2.position[0]-b2.size*np.sign(b2.position[0]-b1.position[0]), 0)
-            bodyPosDif = (b1OfBorder[0]-b2OfBorder[0], b1OfBorder[1]-b2OfBorder[1])
-            b2.position = ((b2.position[0]-bodyPosDif[0]), (b2.position[1]-bodyPosDif[1]))
-            print("test", b2.position)
-            print(b1OfBorder, b2OfBorder)
-
-    def collision_reset(self, listOfPlanet):
-        for x in listOfPlanet:
-            x.CollideInProcess = False
-
-    def find_E(self, M, r, initial_guess, tolerance=1e-6, max_iterations=100):
-        E = initial_guess
-        for i in range(max_iterations):
-            f = E - r * math.sin(E) - M
-            df = 1 - r * math.cos(E)
-            E -= f / df
-            if abs(f) < tolerance:
-                return E
-        return None
-
-    def KeplersMaths(self, StarMass, planetSpeed, planetMass, periapsis, time):
-        print("parametrs that given - ", StarMass, planetMass, planetSpeed, periapsis, time)
-        majorA = abs(1 / ((2 / periapsis) - (planetSpeed ** 2 / (GraviConst * StarMass))))
-        eccentricity = -((periapsis/majorA) - 1)
-        majorB = majorA*math.sqrt(1-eccentricity**2)
-        Period = (2 * math.pi) * math.sqrt((majorA ** 3) / (StarMass * GraviConst))
-        print("Period", Period)
-        print("eccentricity", eccentricity)
-
-        meanMotion = (math.pi * 2) / Period
-        meanAnomaly = meanMotion * time
-        eccentricAnomaly = find_E(meanAnomaly, eccentricity, 0.0)
-        trueAnomaly = 2 * math.atan(math.sqrt((1 + eccentricity) / (1 - eccentricity)) * math.tan(eccentricAnomaly / 2))
-        heliocentricDist = periapsis * (1 - eccentricity * math.cos(eccentricAnomaly))
-
-        planetX = heliocentricDist * math.cos(trueAnomaly)
-        planetY = heliocentricDist * math.sin(trueAnomaly)
-
-        print("planet x-{0} and y-{1} in {2}".format(planetX, planetY, time))
-
-        #additional parametrs
-        Aphelion = (1 + eccentricity) * majorA
-        #Velocity if eccentrycity 0
-        Vis_Viva = math.sqrt(GraviConst*StarMass*((2/periapsis)-(1/majorA)))
-        VifE0 = math.sqrt((GraviConst*StarMass)/majorA)
-
-        print("mean motion", VifE0)
-        print("Aphelion, if eccentricity -x Periapsis - ", Aphelion)
-
-        print("_______________")
-
-        return planetX, planetY, Period, majorA, majorB
-
-class Text_controle:
-    def __init__(self):
-        pass
-    def help_textRender(self):
-        helpRander1 = font.render("Hello, this is early alpha version of space physic simulation", True, (0, 255, 0))
-        helpRander2 = font.render("For close this window press h, repeat if you want to see this again", True, (0, 255, 0))
-        helpRander3 = font.render("Press v to see vectors", True, (0, 255, 0))
-        helpRander4 = font.render("Press t to turn on/off planet trails", True, (0, 255, 0))
-        helpRander5 = font.render("Press f to turn on/off focus on planet, use arrow to change focus", True, (0, 255, 0))
-        helpRander6 = font.render("Use arrow to move camera", True, (0, 255, 0))
-        helpRander7 = font.render("Use +/- to scale perspective", True, (0, 255, 0))
-        helpRander8 = font.render("If you want to add new object, you only might to do this in code redactor for now", True, (0, 255, 0))
-        helpRender9 = font.render("For time forward use q/e", True, (0, 255, 0))
-        screen.blit(helpRander1, (screen.get_width()/10, 0))
-        screen.blit(helpRander2, (screen.get_width() / 10, 20))
-        screen.blit(helpRander3, (screen.get_width() / 10, 40))
-        screen.blit(helpRander4, (screen.get_width() / 10, 60))
-        screen.blit(helpRander5, (screen.get_width() / 10, 80))
-        screen.blit(helpRander6, (screen.get_width() / 10, 100))
-        screen.blit(helpRander7, (screen.get_width() / 10, 120))
-        screen.blit(helpRander8, (screen.get_width() / 10, 140))
-        screen.blit(helpRender9, (screen.get_width() / 10, 160))
-
-    def function_textRender(self):
-        followFunctioOn = font.render("follow on", True, (0, 255, 0))
-        VectorFunctionOn = font.render("Vector display on", True, (0, 255, 0))
-        trailDrawOn = font.render("Trail display on", True, (0, 255, 0))
-
-        if follow:
-            screen.blit(followFunctioOn, (screen.get_width() - 100, 20))
-        if vector_draw:
-            screen.blit(VectorFunctionOn, (screen.get_width() - 150, 40))
-        if trail_draw:
-            screen.blit(trailDrawOn, (screen.get_width() - 150, 60))
-
-    def baseTextRender(self):
-        img3 = font.render("{0} seconds".format(simulation_time), True, (0, 255, 0))
-        img4 = font.render("x-{0} y-{1}".format(FindX, FindY), True, (0, 255, 0))
-        cameraText = font.render("camera x-{0} y-{1}, camera scale {2}".format(Camera.position[0], Camera.position[1], Camera.scale), True, (0, 255, 0))
-        TimeSpeedText = font.render("time speed {0}s/f".format(Engine.time_speed), True, (0, 255, 0))
-        screen.blit(cameraText, (20, 10))
-        screen.blit(img3, (20, 30))
-        screen.blit(img4, (20, 50))
-        screen.blit(TimeSpeedText, (20, 70))
-
-    def planet_characteristics(self, planet):
-        t1 = font.render("position x-{0} y-{1}".format(planet.position[0], planet.position[1]), True, (0, 255, 0))
-        t2 = font.render("speed {0} m/s".format(math.sqrt(planet.vector[0]**2+planet.vector[1]**2)), True, (0, 255, 0))
-        t3 = font.render("mass {0} kg".format(planet.mass), True, (0, 255, 0))
-        t4 = font.render("radius {0} m".format(planet.size), True, (0, 255, 0))
-        t5 = font.render("period of orit - {0} second".format(planet.OritPeriod), True, (0, 255, 0))
-        t6 = font.render("ID - {0}".format(planet.ID), True, (0, 255, 0))
-        img3 = font.render("{0} seconds".format(simulation_time), True, (0, 255, 0))
-
-        screen.blit(t1, (20, 10))
-        screen.blit(t2, (20, 30))
-        screen.blit(t3, (20, 50))
-        screen.blit(t4, (20, 70))
-        screen.blit(t5, (20, 90))
-        screen.blit(t6, (20, 110))
-        screen.blit(img3, (20, 130))
-
-
-class Camera:
-    def __init__(self, position, scale, speed_of_move, speed_of_scale):
-        self.position = position
-        self.scale = scale
-        self.speed_of_move = speed_of_move
-        self.speed_of_scale = speed_of_scale
-
-    def move(self, move_vector):
-        #move vector example - (0, 0, 0)
-        self.position[0] += self.speed_of_move*move_vector[0]
-        self.position[1] += self.speed_of_move*move_vector[1]
-        self.position[2] += self.speed_of_move*move_vector[2]
-
-    def follow(self, obj_pos):
-        self.position = [obj_pos[0], obj_pos[1], 0]
-
-class Particle:
-    def __init__(self, parentBody, pos):
-        self.parent = parentBody
-        self.mass = parentBody.mass/parentBody.Ssize
-        self.vector = parentBody.vector
-        self.pos = pos
-
-    def stable_controle(self):
-        r = math.sqrt((self.parent.position[0] - self.pos[0]) ** 2 + (self.parent.position[1] - self.pos[1]) ** 2)
-        if r == 0:
-            return True
-        else:
-            pBody_infl = Engine.gravitation_math(self.mass, self.parent.mass, r)
-            starBody_infl = Engine.gravitation_math(self.mass, body_1.mass, math.sqrt((body_1.position[0]-self.pos[0])**2+(body_1.position[1]-self.pos[1])**2))
-
-            if pBody_infl[0] < starBody_infl[0]:
-                self.test_destroy()
-
-    def draw(self, camera):
-        pygame.draw.circle(screen, (250, 0, 250), (
-        ((screen.get_width() / 2) + ((camera.position[0] - self.pos[0]) / camera.scale)),
-        (screen.get_width() / 2) + ((camera.position[1] - self.pos[1]) / camera.scale)), 1 / camera.scale)
-
-    def update_pos(self):
-        self.pos = (self.pos[0]-self.vector[0]*Engine.time_speed, self.pos[1]-self.vector[1]*Engine.time_speed, 0)
-
-    def test_destroy(self):
-        self.vector = (self.vector[0], self.vector[1], 0)
-
-        new = Planet(self.pos, self.vector, self.mass, "particle", 1, str(len(planet_list)))
-
-        new.fromParticle = True
-
-        self.parent.mass -= self.mass
-
-        self.parent.particleList.remove(self)
-
-        if len(self.parent.particleList) == 0:
-            del self.parent
-
-        del self
-
-    def __del__(self):
-        pass
-
-class Planet:
-    def __init__(self, position, vector, mass, type, size, ID):
-        self.fromParticle = False
-        planet_list.append(self)
-        orbitMaths = False
-
-        #base parameters
-        self.position = position
-        self.vector = vector
-        self.mass = mass
-        self.type = type
-        self.size = size
-        self.ID = ID
-
-        #additional parameters
-        self.CollideInProcess = False
-        self.Ssize = int(2*math.pi*size**2)
-        self.particleList = []
-        self.ParticleGen = False
-
-        self.parent_body = None
-        self.grav_vector = ()
-        if type != "star" and orbitMaths:
-            self.OrbitData = Engine.KeplersMaths(body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
-            self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
-            self.OritPeriod = self.OrbitData[2]
-        else:
-            self.OritPeriod = 0
-
-        # drawing parametrs
-        self.screen_position = None
-        self.trail = []
-        self.lbl = font.render(ID, True, (0, 0, 255))
-
-
-    def draw(self, camera):
-        size_of_draw = self.size/camera.scale
-        self.screen_position = (((screen.get_width()/2)+((camera.position[0]-self.position[0])/camera.scale)), (screen.get_width()/2)+((camera.position[1]-self.position[1])/camera.scale))
-        #drawing planet
-        if size_of_draw >=1:
-            pygame.draw.circle(screen, (250, 250, 250), (self.screen_position[0], self.screen_position[1]), size_of_draw)
-        else:
-            screen.blit(self.lbl, (self.screen_position[0], self.screen_position[1]))
-
-        #drawing force vector and gravitation force vector
-        if vector_draw:
-            pygame.draw.line(screen, (250, 250, 0), (self.screen_position[0], self.screen_position[1]), (self.screen_position[0]+self.vector[0]*1000/Camera.scale, self.screen_position[1]+self.vector[1]*1000/Camera.scale))
-            pygame.draw.line(screen, (250, 0, 250), (self.screen_position[0], self.screen_position[1]), (self.screen_position[0]+self.grav_vector[0]*100000/Camera.scale, self.screen_position[1]+self.grav_vector[1]*100000/Camera.scale), 2)
-
-    def create_particles(self):
-        coords = Engine.get_circle_coords(self.position[0], self.position[1], self.size)
-        for coord in coords:
-            step = 1
-            tx = 0
-            ty = coord[0][1]
-            while tx <= coord[1][0]:
-                tx = coord[0][0] + step
-                self.particleList.append(Particle(self, (tx, ty)))
-                step+=1
-
-    def test_draw(self, camera):
-        coords = Engine.get_circle_coords(self.position[0], self.position[1], self.size)
-        for index, coord in enumerate(coords):
-            step = 1
-            tx = 0
-            ty = coord[0][1]
-
-            while tx <= coord[1][0]:
-                tx = coord[0][0] + step
-                pygame.draw.circle(screen, (250, 0, 250), (((screen.get_width()/2)+((camera.position[0]-tx)/camera.scale)), (screen.get_width()/2)+((camera.position[1]-ty)/camera.scale)), 1/camera.scale)
-                step+=1
-
-    def orbit_draw_conrtole(self):
-        Orbit_Draw = pygame.Rect(
-            ((screen.get_width() / 2) + ((Camera.position[0] - (self.CentrePos[0] + self.OrbitData[3])) / Camera.scale)),
-            (screen.get_width() / 2) + ((Camera.position[1] - (self.CentrePos[1] + self.OrbitData[4])) / Camera.scale)
-            , (self.OrbitData[3] * 2) / Camera.scale, (self.OrbitData[4] * 2) / Camera.scale)
-        pygame.draw.ellipse(screen, (255, 0, 0), Orbit_Draw, width=1)
-
-    def trail_control(self):
-        trails_frame = frames / (100/Engine.time_speed)
-        if trails_frame.is_integer():
-            self.trail.append(body.position)
-        if len(self.trail) > trail_lenght:
-            self.trail.remove(self.trail[0])
-
-        for index, coords in enumerate(self.trail):
-            if len(self.trail) > 2 and index!= len(self.trail)-2:
-                start_coords = ((screen.get_width()/2)+((Camera.position[0]-coords[0])/Camera.scale), (screen.get_width()/2)+((Camera.position[1]-coords[1])/Camera.scale))
-                finish_coords = self.trail[index+1]
-                finish_coords = ((screen.get_width()/2)+((Camera.position[0]-finish_coords[0])/Camera.scale), (screen.get_width()/2)+((Camera.position[1]-finish_coords[1])/Camera.scale))
-                pygame.draw.line(screen, (0, 255, 0), (int(start_coords[0]), int(start_coords[1])), ((int(finish_coords[0])), int(finish_coords[1])))
-            else:
-                break
-
-    def __del__(self):
-        planet_list.remove(self)
-        print("planet del")
-
-def find_E(M, r, initial_guess, tolerance=1e-6, max_iterations=100):
-    E = initial_guess
-    for i in range(max_iterations):
-        f = E - r * math.sin(E) - M
-        df = 1 - r * math.cos(E)
-        E -= f / df
-        if abs(f) < tolerance:
-            return E
-    return None
-
 clock = pygame.time.Clock()
 frames = 0
 simulation_time = 0
@@ -391,7 +55,7 @@ FindY = 0
 #Camera = Camera([0, 0, 0], 1*10**6, 1*10**11, 1*10**5)
 #Camera for small simulations
 Camera = Camera([0, 0, 0], 1, 10, 1)
-Text_controle = Text_controle()
+Text_controle = Text_controle(screen)
 Engine = Engine(1, 10)
 
 #planet initiating
@@ -405,8 +69,8 @@ Engine = Engine(1, 10)
 #body_1 = Planet((0, 0, 0), (0, 0, 0), 5.973*10**24, "star", 6371000, "1")
 #body_2 = Planet((363104000, 0, 0), (0, 1023, 0), 7.347*10**22, "moon", 1737000, "2")
 
-body_1 = Planet((20, 3, 0), (0, 0, 0), 100_000_000, "star", 5, "1")
-body_2 = Planet((0, 0, 0), (-0.1, 0, 0), 100_000_0, "planet", 3, "2")
+#body_1 = Planet((20, 0, 0), (0, 0, 0), 100_000_000, "star", 5, "1")
+#body_2 = Planet((0, 0, 0), (-0.1, 0, 0), 100_000_0, "planet", 3, "2")
 
 #testBody1 = Planet((0, 0, 0), (0, 0, 0), Sun, "star", 696*10**6, "Sun")
 #testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 6944*10**3, "Earth")
@@ -422,6 +86,14 @@ body_2 = Planet((0, 0, 0), (-0.1, 0, 0), 100_000_0, "planet", 3, "2")
 
 #test
 trails = []
+#testBody2 = Planet((0, 50, 0), (0, 0, 0), 10*10**9, "planet", 5, "Earth")
+squaare = 5
+tID = 0
+for b in range(0, squaare):
+    for p in range(0, squaare):
+        test_body = Planet((p*10, b*10, 0), (0, 0, 0), 100000000, "planet", 1, str(tID), Engine, Camera)
+        tID += 1
+
 
 #follow function control
 follow = False
@@ -446,17 +118,17 @@ lists = []
 collectData = (False, 70000, "4", "4", "speed")
 
 #body_2.create_particles()
-print(len(body_2.particleList))
-len_of_check = len(body_2.particleList)
-test = False
+#print(len(body_2.particleList))
+#len_of_check = len(body_2.particleList)
+#test = False
 
-for p in range(0, len_of_check):
-    if test:
-        body_2.particleList[1].stable_controle()
-    else:
-        test = body_2.particleList[0].stable_controle()
+#for p in range(0, len_of_check):
+#    if test:
+#        body_2.particleList[1].stable_controle()
+#    else:
+#        test = body_2.particleList[0].stable_controle()
 
-print(len(body_2.particleList))
+#print(len(body_2.particleList))
 
 #list for data init
 if collectData[4] == "G_infl":
@@ -468,17 +140,22 @@ else:
 while True:
     screen.fill((0, 0, 0))
 
+    planet_list = Body_Functions.planet_list
+
     for body in planet_list:
         ID = body.ID
         if pause != True:
             for x in range(0, Engine.time_speed):
                 for index, objects in enumerate(planet_list):
                     if objects.ID != ID:
-                        Engine.collision_detector(body, objects)
+                        collide = Engine.collision_detector(body, objects)
                         if objects.mass > min_sim_mass:
-                            gVector = Engine.VectorMath(body, objects)
+                            if collide:
+                                pass
+                            else:
+                                gVector = Engine.VectorMath(body, objects)
+                                body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
 
-                            body.vector = (body.vector[0] + gVector[0][0], body.vector[1] + gVector[0][1], 0)
                             if body.particleList:
                                 for x in body.particleList:
                                     x.vector = body.vector
@@ -503,27 +180,31 @@ while True:
                     x.update_pos()
             body.position = (body.position[0] - body.vector[0]*Engine.time_speed, body.position[1] - body.vector[1]*Engine.time_speed, 0)
 
+        #for x in planet_list:
+        #    if x.ID != ID:
+        #        Engine.test(body, x)
+
         if trail_draw:
-            body.trail_control()
+            body.trail_control(screen, frames, trail_lenght)
 
         if body.type != "star" and orbit_draw:
-            body.orbit_draw_conrtole()
+            body.orbit_draw_conrtole(screen)
 
         if body.particleList:
             for x in body.particleList:
-                x.draw(Camera)
+                x.draw(Camera, screen)
         else:
-            body.draw(Camera)
+            body.draw(screen, vector_draw)
 
     #text render
     if help_window:
         Text_controle.help_textRender()
     else:
-        Text_controle.function_textRender()
+        Text_controle.function_textRender(follow, vector_draw, trail_draw)
         if follow:
-            Text_controle.planet_characteristics(planet_list[followObj])
+            Text_controle.planet_characteristics(planet_list[followObj], simulation_time)
         else:
-            Text_controle.baseTextRender()
+            Text_controle.baseTextRender(simulation_time, (FindX, FindY), Camera, Engine)
 
     #key and other function control
     for event in pygame.event.get():

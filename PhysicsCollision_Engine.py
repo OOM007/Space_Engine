@@ -4,6 +4,7 @@ import numpy as np
 import time
 
 pygame.init()
+font = pygame.font.SysFont(None, 24)
 
 # Open a new window
 size = (1000, 750)
@@ -123,7 +124,7 @@ Collision = False
 if len(dots) > 1:
     collision = True
 
-dotsNumber = 500
+dotsNumber = 2000
 spawnRate = 1
 spawnTimer = 1
 
@@ -144,7 +145,7 @@ while not exit:
         for index, x in enumerate(dots):
             x.accelerate(gravity)
             x.update()
-            x.constraint_circle(300, 500, 300)
+            x.constraint_circle(300, 500, 400)
 
             grid_obj = (int(x.coord_in_grid[0]), int(x.coord_in_grid[1]))
 
@@ -156,12 +157,16 @@ while not exit:
                             if test != x:
                                 x.collision(test)
 
+
     for x in dots:
         x.draw()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit = True
+
+    text1 = font.render("number of objects {0}".format(len(dots)), True, (0, 255, 0))
+    screen.blit(text1, (0, 50))
 
     pygame.display.set_caption(str(clock.get_fps()))
     spawnTimer -= 1
