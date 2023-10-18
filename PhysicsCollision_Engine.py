@@ -1,7 +1,11 @@
+import asyncio
+
 import pygame
 import math
 import numpy as np
 import time
+
+import asyncio
 
 pygame.init()
 font = pygame.font.SysFont(None, 24)
@@ -141,8 +145,7 @@ while not exit:
         spawnTimer = spawnRate
 
     for step in range(0, sub_step):
-
-        for index, x in enumerate(dots):
+        for x in dots:
             x.accelerate(gravity)
             x.update()
             x.constraint_circle(300, 500, 400)
@@ -156,7 +159,6 @@ while not exit:
                         for test in objects:
                             if test != x:
                                 x.collision(test)
-
 
     for x in dots:
         x.draw()

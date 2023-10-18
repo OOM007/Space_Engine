@@ -1,10 +1,5 @@
-import random
 import time
-
-import numpy
 import numpy as np
-import pygame
-import math
 import matplotlib.pyplot as plt
 
 # get other functions
@@ -13,6 +8,7 @@ from Engine_controle import Engine as Engine
 from Engine_controle import Camera as Camera
 from Text_controle_main import Text_controle
 from Body_Functions import *
+from Parametrs import *
 
 pygame.init()
 font = pygame.font.SysFont(None, 24)
@@ -22,27 +18,8 @@ size = (1000, 750)
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption("test")
 
-GraviConst = 6.674 * 10**-11
-print(GraviConst)
-
-timeSpeed = 1000
-scale = 100_000
-
-trail_lenght = 20
-
-# simple planet mass
-Sun = 1.9885 * 10**30
-jupiter = 1.898 * 10**27
-earth = 5.9737 * 10**24
-
-# simple planet distance
-earth_sun = 1.5 * 10**11
-
 # list initiating
 planet_list = []
-
-# parameters for optimizating
-min_sim_mass = 500
 
 clock = pygame.time.Clock()
 frames = 0
@@ -93,23 +70,6 @@ for b in range(0, squaare):
     for p in range(0, squaare):
         test_body = Planet((p*10, b*10, 0), (0, 0, 0), 100000000, "planet", 1, str(tID), Engine, Camera)
         tID += 1
-
-
-#follow function control
-follow = False
-followObj = None
-
-#draw parametrs for future engine upgrades
-vector_draw = False
-
-#trail drawing parameter (base on)
-trail_draw = False
-orbit_draw = False
-
-help_window = True
-
-#simulation pause by stoping of calculating processes
-pause = False
 
 lists = []
 
