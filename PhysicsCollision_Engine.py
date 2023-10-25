@@ -34,7 +34,7 @@ class VerletObject():
 
         self.coord_in_grid = [0, 0]
 
-        self.radius = 2
+        self.radius = 4
         self.color = (0, 255, 0)
         self.mass = 1
 
@@ -101,12 +101,12 @@ class VerletObject():
     def draw(self):
         pygame.draw.circle(screen, (0, 255, 255), self.pos, self.radius)
 
-dot1 = VerletObject(500, 200, 1, 1)
-dot2 = VerletObject(100, 200, 1, 1)
+dot1 = VerletObject(700, 200, 1, 1)
+dot2 = VerletObject(800, 200, 1, 1)
 
 dots = []
 grid = {}
-grid_size = 5
+grid_size = 10
 grid_stepX = size[0]/grid_size
 grid_stepY = size[1]/grid_size
 
@@ -128,7 +128,7 @@ Collision = False
 if len(dots) > 1:
     collision = True
 
-dotsNumber = 2000
+dotsNumber = 1000
 spawnRate = 1
 spawnTimer = 1
 
@@ -144,12 +144,12 @@ while not exit:
         dotsNumber -= 1
         spawnTimer = spawnRate
 
-    for step in range(0, sub_step):
-        for x in dots:
-            x.accelerate(gravity)
-            x.update()
-            x.constraint_circle(300, 500, 400)
+    for x in dots:
+        x.accelerate(gravity)
+        x.update()
+        x.constraint_circle(300, 500, 400)
 
+        for step in range(0, sub_step):
             grid_obj = (int(x.coord_in_grid[0]), int(x.coord_in_grid[1]))
 
             for ty in range(0, 3):

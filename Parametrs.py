@@ -1,7 +1,11 @@
 GraviConst = 6.674 * 10**-11
+
 timeSpeed = 1000
+
 scale = 100_000
+
 trail_lenght = 20
+
 # simple planet mass
 Sun = 1.9885 * 10**30
 jupiter = 1.898 * 10**27
@@ -24,7 +28,9 @@ vector_draw = False
 trail_draw = False
 orbit_draw = False
 
-help_window = True
+help_window = False
 
 #simulation pause by stoping of calculating processes
 pause = False
+
+orbitMaths = False

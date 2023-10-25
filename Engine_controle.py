@@ -37,11 +37,11 @@ class Engine:
         pos1 = Obj1.position
         pos2 = Obj2.position
 
-        DistVector = (pos1[0] - pos2[0], pos1[1] - pos2[1])
+        DistVector = (pos1 - pos2)
         Dist = math.sqrt(DistVector[0] ** 2 + DistVector[1] ** 2)
 
         grav = self.gravitation_math(Obj1.mass, Obj2.mass, Dist)
-        gravVector = (DistVector[0] / (Dist / grav[1]), DistVector[1] / (Dist / grav[1]))
+        gravVector = pygame.Vector2(DistVector[0] / (Dist / grav[1]), DistVector[1] / (Dist / grav[1]))
         Obj1.grav_vector = gravVector
 
         return gravVector, Dist
@@ -59,21 +59,15 @@ class Engine:
             coords.append([[x1, y], [x2, y]])
         return coords
 
-    def collision_detector(self, main_body, obj):
-        e = 1
-        distance = math.sqrt((main_body.position[0]-obj.position[0])**2+(main_body.position[1]-obj.position[1])**2) - (main_body.size+obj.size)
-        if distance <= 0:
-            v1_x = e * (((main_body.mass - obj.mass) * obj.vector[0] + 2 * (main_body.mass * main_body.vector[0])) / (
-                        main_body.mass + obj.mass))
-            v1_y = e * (((main_body.mass - obj.mass) * obj.vector[1] + 2 * (main_body.mass * main_body.vector[1])) / (
-                        main_body.mass + obj.mass))
-            v2_x = e * (((obj.mass - main_body.mass) * obj.vector[0] + 2 * (main_body.mass * main_body.vector[0])) / (
-                        main_body.mass + obj.mass))
-            v2_y = e * (((obj.mass - main_body.mass) * obj.vector[1] + 2 * (main_body.mass * main_body.vector[1])) / (
-                        main_body.mass + obj.mass))
-
-            main_body.vector = (v1_x, v1_y, 0)
-            obj.vector = (v2_x, v2_y, 0)
+    def collision(self, obj1, obj2):
+        collision_axis = obj1.position - obj2.position
+        dist = math.dist(obj1.position, obj2.position)
+        min_radius = obj1.size + obj2.size
+        if (dist <= min_radius):
+            n = collision_axis/dist
+            delta = min_radius - dist
+            obj1.position = obj1.position + 0.5 * delta * n
+            obj2.position = obj2.position - 0.5 * delta * n
             return True
 
     def test(self, b1, b2):

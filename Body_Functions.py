@@ -1,5 +1,6 @@
 import math
 import pygame
+from Parametrs import *
 
 pygame.init()
 font = pygame.font.SysFont(None, 24)
@@ -19,7 +20,7 @@ class Particle:
             return True
         else:
             pBody_infl = Engine.gravitation_math(self.mass, self.parent.mass, r)
-            starBody_infl = Engine.gravitation_math(self.mass, body_1.mass, math.sqrt((body_1.position[0]-self.pos[0])**2+(body_1.position[1]-self.pos[1])**2))
+            starBody_infl = Engine.gravitation_math(self.mass, self.parent.mass, math.sqrt((self.parent.position[0]-self.pos[0])**2+(self.parent.position[1]-self.pos[1])**2))
 
             if pBody_infl[0] < starBody_infl[0]:
                 self.test_destroy()
@@ -58,11 +59,11 @@ class Planet:
 
         self.fromParticle = False
         planet_list.append(self)
-        orbitMaths = False
 
         #base parameters
-        self.position = position
-        self.vector = vector
+        self.position = pygame.Vector2(position[0], position[1])
+        self.old_position = pygame.Vector2(position[0]-vector[0], position[1]-vector[1])
+        self.vector = pygame.Vector2(vector[0], vector[1])
         self.mass = mass
         self.type = type
         self.size = size
@@ -74,10 +75,11 @@ class Planet:
         self.particleList = []
         self.ParticleGen = False
 
-        self.parent_body = None
-        self.grav_vector = ()
+        self.parent_body = planet_list[0]
+        self.grav_vector = pygame.Vector2(0, 0)
+
         if type != "star" and orbitMaths:
-            self.OrbitData = Engine.KeplersMaths(body_1.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
+            self.OrbitData = Engine.KeplersMaths(self.parent_body.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
             self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
             self.OritPeriod = self.OrbitData[2]
         else:
@@ -88,6 +90,12 @@ class Planet:
         self.trail = []
         self.lbl = font.render(ID, True, (0, 0, 255))
 
+    def update(self, dt):
+        vel = self.position - self.old_position
+        self.old_position = self.position
+        self.position = self.position + vel + ((-self.grav_vector) * dt ** 2)
+
+        self.vector = -vel
 
     def draw(self, screen, vector_draw):
         size_of_draw = self.size/self.Camera.scale
@@ -151,4 +159,3 @@ class Planet:
 
     def __del__(self):
         planet_list.remove(self)
-        print("planet del")
