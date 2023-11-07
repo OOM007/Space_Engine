@@ -59,17 +59,6 @@ class Engine:
             coords.append([[x1, y], [x2, y]])
         return coords
 
-    def collision(self, obj1, obj2):
-        collision_axis = obj1.position - obj2.position
-        dist = math.dist(obj1.position, obj2.position)
-        min_radius = obj1.size + obj2.size
-        if (dist <= min_radius):
-            n = collision_axis/dist
-            delta = min_radius - dist
-            obj1.position = obj1.position + 0.5 * delta * n
-            obj2.position = obj2.position - 0.5 * delta * n
-            return True
-
     def test(self, b1, b2):
         dist = math.sqrt((b1.position[0]-b2.position[0])**2+(b1.position[1]-b2.position[1])**2) - (b1.size+b2.size)
         if dist < 0:

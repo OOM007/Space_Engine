@@ -11,6 +11,9 @@ from Engine_controle import Camera as Camera
 from Text_controle_main import Text_controle
 from Body_Functions import *
 from Parametrs import *
+import Collide_detect
+
+Collide = Collide_detect.Collide()
 
 pygame.init()
 font = pygame.font.SysFont(None, 24)
@@ -30,102 +33,65 @@ simulation_time = 0
 FindX = 0
 FindY = 0
 
+def GetData(body, obj, gVector):
+    # collect data for graph
+    if body.ID == collectData[2] and collectData[0]:
+        if collectData[4] == "speed":
+            lists[0].append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
+        elif collectData[4] == "dist":
+            if obj.ID == collectData[3]:
+                lists[0].append(gVector[1])
 
-def mainCycle():
-    for body in planet_list:
-        ID = body.ID
-        if pause != True:
-            for x in range(0, Engine.time_speed):
-                for index, objects in enumerate(planet_list):
-                    if objects.ID != ID:
-                        collide = Engine.collision_detector(body, objects)
-                        if objects.mass > min_sim_mass:
-                            if collide:
-                                pass
-                            else:
-                                gVector = Engine.VectorMath(body, objects)
-                                body.vector = body.vector + gVector[0]
+def MainCycle():
+    if pause == False:
+        for x in range(0, Engine.time_speed):
+            checked = []
+            for body in planet_list:
+                body.grav_vector = pygame.Vector2(0, 0)
+                for obj in planet_list:
+                    if body.ID != obj.ID:
+                        grav = Engine.VectorMath(body, obj)
+                        body.grav_vector += grav[0]
+                        body.update(1)
 
-                            if body.particleList:
-                                for x in body.particleList:
-                                    x.vector = body.vector
+                        # collision detection
 
-                            #collect data for graph
-                            if ID == collectData[2] and collectData[0]:
-                                if collectData[4] == "speed":
-                                    lists[0].append(math.sqrt(body.vector[0] ** 2 + body.vector[1] ** 2))
-                                elif collectData[4] == "dist":
-                                    if objects.ID == collectData[3]:
-                                        lists[0].append(gVector[1])
-                                elif collectData[4] == "G_infl":
-                                    if index==0:
-                                        step = 0
-                                    else:
-                                        step = index-1
+                        if Collide.collision_detect(body, obj) and obj in checked:
+                            Collide.collision(body, obj)
 
-                                    lists[step].append(math.sqrt(gVector[0][0] ** 2 + gVector[0][1] ** 2))
+                checked.append(body)
 
-            if body.particleList:
-                for x in body.particleList:
-                    x.update_pos()
-
-            body.position = body.position - body.vector*Engine.time_speed
+    for b in planet_list:
 
         if trail_draw:
-            body.trail_control(screen, frames, trail_lenght)
+            b.trail_control(screen, frames, trail_lenght)
 
-        if body.type != "star" and orbit_draw:
-            body.orbit_draw_conrtole(screen)
+        if b.type != "star" and orbit_draw:
+            b.orbit_draw_conrtole(screen)
 
-        if body.particleList:
-            for x in body.particleList:
-                x.draw(Camera, screen)
-        else:
-            body.draw(screen, vector_draw)
-
-def testMainCycle():
-    for x in range(0, Engine.time_speed):
-        checked = []
-        for body in planet_list:
-            for obj in planet_list:
-                # Checked or Not
-                CorN = obj in checked
-                if body.ID != obj.ID and CorN != True:
-                    collided = Engine.collision(body, obj)
-                    if collided != True:
-                        grav = Engine.VectorMath(body, obj)
-                        grav2 = Engine.VectorMath(obj, body)
-                        body.grav_vector = grav[0]
-                        obj.grav_vector = grav2[0]
-
-                    body.update(1)
-                    obj.update(1)
-
-            checked.append(body)
-    for b in planet_list:
         b.draw(screen, vector_draw)
-
 
 #[Position, scale, speed of move, speed of scale]
 #Camera = Camera([0, 0, 0], 1*10**6, 1*10**11, 1*10**5)
 #Camera for small simulations
-Camera = Camera([0, 0, 0], 1, 10, 1)
+Camera = Camera([0, 0, 0], 10, 10, 1)
 Text_controle = Text_controle(screen)
 Engine = Engine(1, 10)
 
 #planet initiating
-#body_1 = Planet((0, 0, 0), (0, 0, 0), 10**10, "star", 10, "1", Engine, Camera)
-#body_2 = Planet((50, 0, 0), (0, 0, 0), 567, "planet", 3, "2", Engine, Camera)
-#body_3 = Planet((100, 0, 0), (0, -0.08, 0), 554, "planet", 3, "3")
+#body_1 = Planet((0, 10000, 0), (0, 0, 0), 1000, "star", 10, "010", Engine, Camera)
+#body_2 = Planet((50, 0, 0), (0, 0.1, 0), 567, "planet", 3, "2", Engine, Camera)
+#body_3 = Planet((100, 0, 0), (0, -0.05, 0), 554, "planet", 3, "3", Engine, Camera)
 #body_4 = Planet((200, 0, 0), (0, 0.04, 0), 89, "comet", 1, "4")
 #body_5 = Planet((1000, 0 ,0), (0, -0.02, 0), 476, "planet", 3, "5")
 #body_6 = Planet((4000, 0 ,0), (0, -0.003, 0), 687, "comet", 3, "6")
 
-#body_1 = Planet((0, 0, 0), (0, 0, 0), 5.973*10**24, "star", 6371000, "1")
+#body_1 = Planet((0, -6371000, 0), (0, 0, 0), 5.973*10**24, "Earth", 6371000, "1", Engine, Camera)
 #body_2 = Planet((363104000, 0, 0), (0, 1023, 0), 7.347*10**22, "moon", 1737000, "2")
 
-#body_1 = Planet((50, 0, 0), (-0.1, 0, 0), 100_000_000, "star", 5, "test_planet", Engine, Camera)
-#body_2 = Planet((12, 0, 0), (0.1, 0, 0), 100_000_000, "planet", 3, "2", Engine, Camera)
+#body_1 = Planet((0, 0, 0), (0, 0, 0), 10, "star", 5, "test_planet", Engine, Camera)
+#body_2 = Planet((20, 0, 0), (-0.1, 0, 0), 10, "planet", 2, "2", Engine, Camera)
+#body_3 = Planet((4, 50, 0), (0, -0.1, 0), 50, "planet", 5, "bowling", Engine, Camera)
 
 #testBody1 = Planet((0, 0, 0), (0, 0, 0), Sun, "star", 696*10**6, "Sun")
 #testBody2 = Planet((0, 150*10**9, 0), (29780, 0, 0), earth, "planet", 6944*10**3, "Earth")
@@ -161,10 +127,10 @@ collectData = (False, 70000, "4", "4", "speed")
 
 #print(len(body_2.particleList))
 
-square = 5
+square = 0
 for x in range(0, square):
     for y in range(0, square):
-        new_planet = Planet((x*10, y*10, 0), (0, 0, 0), 10**5, "planet", 2, str(x*5+y), Engine, Camera)
+        new_planet = Planet((x*25, y*25, 0), (0, 0, 0), 10**5, "planet", 2, str(x*5+y), Engine, Camera)
 
 #list for data init
 if collectData[4] == "G_infl":
@@ -179,8 +145,7 @@ while run:
 
     planet_list = Body_Functions.planet_list
 
-    testMainCycle()
-    #mainCycle()
+    MainCycle()
 
     #text render
     if help_window:
@@ -291,6 +256,7 @@ while run:
     #print("________________")
     pygame.display.update()
     frames+=1
+
     if pause != True:
          simulation_time += Engine.time_speed
     time.sleep(0.1)

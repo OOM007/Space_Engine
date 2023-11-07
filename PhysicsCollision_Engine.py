@@ -19,6 +19,16 @@ frameRate = 60
 
 dt = 2
 
+def acc_math(pos, center, acc):
+    dist = math.dist(pos, center)
+    dist_vector = center - pos
+
+    diff = dist / acc
+
+    acc_vector = pygame.Vector2((dist_vector.x / diff)/frameRate, (dist_vector.y / diff)/frameRate)
+
+    return acc_vector
+
 class Engine_test:
     def __init__(self):
         pass
@@ -128,7 +138,7 @@ Collision = False
 if len(dots) > 1:
     collision = True
 
-dotsNumber = 1000
+dotsNumber = 300
 spawnRate = 1
 spawnTimer = 1
 
@@ -139,13 +149,15 @@ clock = pygame.time.Clock()
 while not exit:
     screen.fill((0, 0, 0))
 
+    pygame.draw.circle(screen, (255, 0, 0), (500, 500), 1)
+
     if spawnTimer == 0 and dotsNumber != 0:
         dots.append(VerletObject(500, 400, 1, 1))
         dotsNumber -= 1
         spawnTimer = spawnRate
 
     for x in dots:
-        x.accelerate(gravity)
+        x.accelerate(acc_math(x.pos, pygame.Vector2(500, 500), 2))
         x.update()
         x.constraint_circle(300, 500, 400)
 
@@ -166,6 +178,12 @@ while not exit:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit = True
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                for x in range(0, 2):
+                    for y in range(0, 2):
+                        dots.append(VerletObject(500+(x*8), 200+(y*8), 1, 1))
 
     text1 = font.render("number of objects {0}".format(len(dots)), True, (0, 255, 0))
     screen.blit(text1, (0, 50))

@@ -4,30 +4,26 @@ import math
 pygame.init()
 font = pygame.font.SysFont(None, 24)
 
-
+# color init
+GREEN = (0, 255, 0)
 class Text_controle:
     def __init__(self, screen):
         self.screen = screen
 
+    def print_text(self, text, font, color, pos):
+        printText = font.render(text, True, color)
+        self.screen.blit(printText, pos)
+
     def help_textRender(self):
-        helpRander1 = font.render("Hello, this is early alpha version of space physic simulation", True, (0, 255, 0))
-        helpRander2 = font.render("For close this window press h, repeat if you want to see this again", True, (0, 255, 0))
-        helpRander3 = font.render("Press v to see vectors", True, (0, 255, 0))
-        helpRander4 = font.render("Press t to turn on/off planet trails", True, (0, 255, 0))
-        helpRander5 = font.render("Press f to turn on/off focus on planet, use arrow to change focus", True, (0, 255, 0))
-        helpRander6 = font.render("Use arrow to move camera", True, (0, 255, 0))
-        helpRander7 = font.render("Use +/- to scale perspective", True, (0, 255, 0))
-        helpRander8 = font.render("If you want to add new object, you only might to do this in code redactor for now", True, (0, 255, 0))
-        helpRender9 = font.render("For time forward use q/e", True, (0, 255, 0))
-        self.screen.blit(helpRander1, (self.screen.get_width()/10, 0))
-        self.screen.blit(helpRander2, (self.screen.get_width() / 10, 20))
-        self.screen.blit(helpRander3, (self.screen.get_width() / 10, 40))
-        self.screen.blit(helpRander4, (self.screen.get_width() / 10, 60))
-        self.screen.blit(helpRander5, (self.screen.get_width() / 10, 80))
-        self.screen.blit(helpRander6, (self.screen.get_width() / 10, 100))
-        self.screen.blit(helpRander7, (self.screen.get_width() / 10, 120))
-        self.screen.blit(helpRander8, (self.screen.get_width() / 10, 140))
-        self.screen.blit(helpRender9, (self.screen.get_width() / 10, 160))
+        self.print_text("Hello, this is early alpha version of space physic simulation", font, GREEN, (self.screen.get_width()/10, 0))
+        self.print_text("For close this window press h, repeat if you want to see this again", font, GREEN, (self.screen.get_width()/10, 20))
+        self.print_text("Press v to see vectors", font, GREEN, (self.screen.get_width()/10, 40))
+        self.print_text("Press t to turn on/off planet trails", font, GREEN, (self.screen.get_width()/10, 60))
+        self.print_text("Press f to turn on/off focus on planet, use arrow to change focus", font, GREEN, (self.screen.get_width()/10, 80))
+        self.print_text("Use arrow to move camera", font, GREEN, (self.screen.get_width()/10, 100))
+        self.print_text("Use +/- to scale perspective", font, GREEN, (self.screen.get_width()/10, 120))
+        self.print_text("If you want to add new object, you only might to do this in code redactor for now", font, GREEN, (self.screen.get_width()/10, 140))
+        self.print_text("For time forward use q/e", font, GREEN, (self.screen.get_width()/10, 160))
 
     def function_textRender(self, follow, vector_draw, trail_draw):
         followFunctioOn = font.render("follow on", True, (0, 255, 0))

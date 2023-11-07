@@ -74,6 +74,7 @@ class Planet:
         self.Ssize = int(2*math.pi*size**2)
         self.particleList = []
         self.ParticleGen = False
+        self.restitution = 0.75
 
         self.parent_body = planet_list[0]
         self.grav_vector = pygame.Vector2(0, 0)
@@ -93,7 +94,7 @@ class Planet:
     def update(self, dt):
         vel = self.position - self.old_position
         self.old_position = self.position
-        self.position = self.position + vel + ((-self.grav_vector) * dt ** 2)
+        self.position = self.position + vel + (-self.grav_vector) * dt ** 2
 
         self.vector = -vel
 
