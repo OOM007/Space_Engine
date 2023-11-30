@@ -2,8 +2,7 @@ import numpy as np
 import math
 import pygame
 
-
-GraviConst = 6.674 * 10**-11
+from Parametrs import *
 
 class Camera:
     def __init__(self, position, scale, speed_of_move, speed_of_scale):
@@ -71,10 +70,6 @@ class Engine:
             b2.position = (b2.position[0] + (move_x / 2), b2.position[1] + (move_y / 2))
 
 
-    def collision_reset(self, listOfPlanet):
-        for x in listOfPlanet:
-            x.CollideInProcess = False
-
     def find_E(self, M, r, initial_guess, tolerance=1e-6, max_iterations=100):
         E = initial_guess
         for i in range(max_iterations):
@@ -85,35 +80,40 @@ class Engine:
                 return E
         return None
 
-    def KeplersMaths(self, StarMass, planetSpeed, planetMass, periapsis, time):
+    def KeplersMaths(self, StarMass, planetSpeed, planetMass, periapsis):
+        time = 1000
         print("parametrs that given - ", StarMass, planetMass, planetSpeed, periapsis, time)
         majorA = abs(1 / ((2 / periapsis) - (planetSpeed ** 2 / (GraviConst * StarMass))))
         eccentricity = -((periapsis/majorA) - 1)
-        majorB = majorA*math.sqrt(1-eccentricity**2)
-        Period = (2 * math.pi) * math.sqrt((majorA ** 3) / (StarMass * GraviConst))
-        print("Period", Period)
-        print("eccentricity", eccentricity)
+        if eccentricity > 1 or eccentricity < -1:
+            return False
+        else:
+            print(1-eccentricity**2)
+            majorB = majorA*math.sqrt(1-eccentricity**2)
+            Period = (2 * math.pi) * math.sqrt((majorA ** 3) / (StarMass * GraviConst))
+            print("Period", Period)
+            print("eccentricity", eccentricity)
 
-        meanMotion = (math.pi * 2) / Period
-        meanAnomaly = meanMotion * time
-        eccentricAnomaly = self.find_E(meanAnomaly, eccentricity, 0.0)
-        trueAnomaly = 2 * math.atan(math.sqrt((1 + eccentricity) / (1 - eccentricity)) * math.tan(eccentricAnomaly / 2))
-        heliocentricDist = periapsis * (1 - eccentricity * math.cos(eccentricAnomaly))
+            meanMotion = (math.pi * 2) / Period
+            meanAnomaly = meanMotion * time
+            eccentricAnomaly = self.find_E(meanAnomaly, eccentricity, 0.0)
+            trueAnomaly = 2 * math.atan(math.sqrt((1 + eccentricity) / (1 - eccentricity)) * math.tan(eccentricAnomaly / 2))
+            heliocentricDist = periapsis * (1 - eccentricity * math.cos(eccentricAnomaly))
 
-        planetX = heliocentricDist * math.cos(trueAnomaly)
-        planetY = heliocentricDist * math.sin(trueAnomaly)
+            planetX = heliocentricDist * math.cos(trueAnomaly)
+            planetY = heliocentricDist * math.sin(trueAnomaly)
 
-        print("planet x-{0} and y-{1} in {2}".format(planetX, planetY, time))
+            print("planet x-{0} and y-{1} in {2}".format(planetX, planetY, time))
 
-        #additional parametrs
-        Aphelion = (1 + eccentricity) * majorA
-        #Velocity if eccentrycity 0
-        Vis_Viva = math.sqrt(GraviConst*StarMass*((2/periapsis)-(1/majorA)))
-        VifE0 = math.sqrt((GraviConst*StarMass)/majorA)
+            #additional parametrs
+            Aphelion = (1 + eccentricity) * majorA
+            #Velocity if eccentrycity 0
+            Vis_Viva = math.sqrt(GraviConst*StarMass*((2/periapsis)-(1/majorA)))
+            VifE0 = math.sqrt((GraviConst*StarMass)/majorA)
 
-        print("mean motion", VifE0)
-        print("Aphelion, if eccentricity -x Periapsis - ", Aphelion)
+            print("mean motion", VifE0)
+            print("Aphelion, if eccentricity -x Periapsis - ", Aphelion)
 
-        print("_______________")
+            print("_______________")
 
-        return planetX, planetY, Period, majorA, majorB
+            return planetX, planetY, Period, majorA, majorB

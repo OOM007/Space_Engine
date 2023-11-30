@@ -1,7 +1,7 @@
 import pygame
 import math
 
-response_coef = 0.75
+response_coef = 0.5
 
 class Collide:
     def collision(self, obj1, obj2):

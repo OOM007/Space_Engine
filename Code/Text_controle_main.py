@@ -18,12 +18,13 @@ class Text_controle:
         self.print_text("Hello, this is early alpha version of space physic simulation", font, GREEN, (self.screen.get_width()/10, 0))
         self.print_text("For close this window press h, repeat if you want to see this again", font, GREEN, (self.screen.get_width()/10, 20))
         self.print_text("Press v to see vectors", font, GREEN, (self.screen.get_width()/10, 40))
-        self.print_text("Press t to turn on/off planet trails", font, GREEN, (self.screen.get_width()/10, 60))
+        self.print_text("Press t to turn on/off planet trails, pres o to show predicted orbits", font, GREEN, (self.screen.get_width()/10, 60))
         self.print_text("Press f to turn on/off focus on planet, use arrow to change focus", font, GREEN, (self.screen.get_width()/10, 80))
         self.print_text("Use arrow to move camera", font, GREEN, (self.screen.get_width()/10, 100))
         self.print_text("Use +/- to scale perspective", font, GREEN, (self.screen.get_width()/10, 120))
-        self.print_text("If you want to add new object, you only might to do this in code redactor for now", font, GREEN, (self.screen.get_width()/10, 140))
-        self.print_text("For time forward use q/e", font, GREEN, (self.screen.get_width()/10, 160))
+        self.print_text("If you want to add new object, you only might to do this in Saving folder by adding param", font, GREEN, (self.screen.get_width()/10, 140))
+        self.print_text("For time forward use q/e", font, GREEN, (self.screen.get_width() / 10, 160))
+        self.print_text("Detail instruction will be on README", font, GREEN, (self.screen.get_width()/10, 180))
 
     def function_textRender(self, follow, vector_draw, trail_draw):
         followFunctioOn = font.render("follow on", True, (0, 255, 0))
@@ -38,7 +39,7 @@ class Text_controle:
             self.screen.blit(trailDrawOn, (self.screen.get_width() - 150, 60))
 
     def baseTextRender(self, simulation_time, FindXY, Camera, Engine):
-        img3 = font.render("{0} seconds".format(simulation_time), True, (0, 255, 0))
+        img3 = font.render("{0} seconds".format(round(simulation_time)), True, (0, 255, 0))
         img4 = font.render("x-{0} y-{1}".format(FindXY[0], FindXY[1]), True, (0, 255, 0))
         cameraText = font.render("camera x-{0} y-{1}, camera scale {2}".format(Camera.position[0], Camera.position[1], Camera.scale), True, (0, 255, 0))
         TimeSpeedText = font.render("time speed {0}s/f".format(Engine.time_speed), True, (0, 255, 0))
@@ -54,7 +55,7 @@ class Text_controle:
         t4 = font.render("radius {0} m".format(planet.size), True, (0, 255, 0))
         t5 = font.render("period of orit - {0} second".format(planet.OritPeriod), True, (0, 255, 0))
         t6 = font.render("ID - {0}".format(planet.ID), True, (0, 255, 0))
-        img3 = font.render("{0} seconds".format(simulation_time), True, (0, 255, 0))
+        img3 = font.render("{0} seconds".format(round(simulation_time)), True, (0, 255, 0))
 
         self.screen.blit(t1, (20, 10))
         self.screen.blit(t2, (20, 30))

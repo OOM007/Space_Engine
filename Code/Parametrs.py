@@ -28,9 +28,9 @@ vector_draw = False
 trail_draw = False
 orbit_draw = False
 
-help_window = False
+help_window = True
 
 #simulation pause by stoping of calculating processes
 pause = False
 
-orbitMaths = False
+orbitMaths = True

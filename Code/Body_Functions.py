@@ -62,7 +62,7 @@ class Planet:
 
         #base parameters
         self.position = pygame.Vector2(position[0], position[1])
-        self.old_position = pygame.Vector2(position[0]-vector[0], position[1]-vector[1])
+        self.old_position = pygame.Vector2(position[0]+vector[0], position[1]+vector[1])
         self.vector = pygame.Vector2(vector[0], vector[1])
         self.mass = mass
         self.type = type
@@ -80,9 +80,10 @@ class Planet:
         self.grav_vector = pygame.Vector2(0, 0)
 
         if type != "star" and orbitMaths:
-            self.OrbitData = Engine.KeplersMaths(self.parent_body.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2), 1000)
-            self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
-            self.OritPeriod = self.OrbitData[2]
+            self.OrbitData = Engine.KeplersMaths(self.parent_body.mass, math.sqrt(self.vector[0]**2+self.vector[1]**2), self.mass, math.sqrt(self.position[0]**2+self.position[1]**2))
+            if self.OrbitData != False:
+                self.CentrePos = ((self.position[0] - self.OrbitData[3]), 0)
+                self.OritPeriod = self.OrbitData[2]
         else:
             self.OritPeriod = 0
 
@@ -91,12 +92,16 @@ class Planet:
         self.trail = []
         self.lbl = font.render(ID, True, (0, 0, 255))
 
-    def update(self, dt):
-        vel = self.position - self.old_position
-        self.old_position = self.position
-        self.position = self.position + vel + (-self.grav_vector) * dt ** 2
+    def update(self, dt, not_last=bool):
+        if not_last == True:
+            self.vector = self.vector - self.grav_vector
+            self.position = self.position + self.vector
+        else:
+            vel = self.position - self.old_position
+            self.old_position = self.position
+            self.position = self.position + vel + ((-self.grav_vector) * dt ** 2)
 
-        self.vector = -vel
+            self.vector = -vel
 
     def draw(self, screen, vector_draw):
         size_of_draw = self.size/self.Camera.scale

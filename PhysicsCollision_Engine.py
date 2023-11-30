@@ -34,7 +34,7 @@ class Engine_test:
         pass
 
 class VerletObject():
-    def __init__(self, x, y, vx, vy):
+    def __init__(self, x, y, vx, vy, mass, r):
         self.pos = pygame.Vector2(x, y)
         self.old_pos = pygame.Vector2(x, y-1)
         self.acceleration = pygame.Vector2(vx / frameRate, vy / frameRate)
@@ -44,9 +44,9 @@ class VerletObject():
 
         self.coord_in_grid = [0, 0]
 
-        self.radius = 4
+        self.radius = r
         self.color = (0, 255, 0)
-        self.mass = 1
+        self.mass = mass
 
     def update(self):
         vel = self.pos - self.old_pos
@@ -100,19 +100,27 @@ class VerletObject():
 
     def collision(self, obj2):
         collision_axis = self.pos - obj2.pos
-        dist = math.dist(self.pos, obj2.pos)
+        dist_2 = collision_axis.x ** 2 + collision_axis.y ** 2
         min_radius = self.radius + obj2.radius
-        if (dist < min_radius):
-            n = collision_axis/dist
-            delta = min_radius - dist
-            self.pos = self.pos + 0.5 * delta * n
-            obj2.pos = obj2.pos - 0.5 * delta * n
+
+        if (dist_2 < min_radius ** 2):
+            dist = math.sqrt(dist_2)
+            n = collision_axis / dist
+
+            mass_ratio1 = self.mass / (self.mass + obj2.mass)
+            mass_ratio2 = obj2.mass / (self.mass + obj2.mass)
+
+            delta = 0.5 * 0.75 * (dist - min_radius)
+
+            self.pos -= n * (mass_ratio2 * delta)
+            obj2.pos += n * (mass_ratio1 * delta)
+            return True
 
     def draw(self):
         pygame.draw.circle(screen, (0, 255, 255), self.pos, self.radius)
 
-dot1 = VerletObject(700, 200, 1, 1)
-dot2 = VerletObject(800, 200, 1, 1)
+dot1 = VerletObject(700, 200, 1, 1, 1, 4)
+dot2 = VerletObject(800, 200, 1, 1, 1, 4)
 
 dots = []
 grid = {}
@@ -152,12 +160,13 @@ while not exit:
     pygame.draw.circle(screen, (255, 0, 0), (500, 500), 1)
 
     if spawnTimer == 0 and dotsNumber != 0:
-        dots.append(VerletObject(500, 400, 1, 1))
+        dots.append(VerletObject(500, 400, 1, 1, 1, 4))
         dotsNumber -= 1
         spawnTimer = spawnRate
 
     for x in dots:
         x.accelerate(acc_math(x.pos, pygame.Vector2(500, 500), 2))
+        #acc_math(x.pos, pygame.Vector2(500, 500), 2)
         x.update()
         x.constraint_circle(300, 500, 400)
 
@@ -181,9 +190,7 @@ while not exit:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                for x in range(0, 2):
-                    for y in range(0, 2):
-                        dots.append(VerletObject(500+(x*8), 200+(y*8), 1, 1))
+                dots.append(VerletObject(500, 200, 1, 1, 10, 10))
 
     text1 = font.render("number of objects {0}".format(len(dots)), True, (0, 255, 0))
     screen.blit(text1, (0, 50))

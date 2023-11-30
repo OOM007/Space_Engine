@@ -1,0 +1,30 @@
+{
+    "planets": [
+        {
+            "Position": [0, 0],
+            "Vector": [0, 0],
+            "Mass": 10000000000,
+            "type": "star",
+            "size": 10,
+            "ID": "001"
+        }, {
+            "Position": [50, 0],
+            "Vector": [0, 0.05],
+            "Mass": 567,
+            "type": "planet",
+            "size": 3,
+            "ID": "002"
+        },{
+            "Position": [100, 0],
+            "Vector": [0, 0.06],
+            "Mass": 567,
+            "type": "planet",
+            "size": 3,
+            "ID": "003"
+        }
+    ],
+
+    "settings": [
+
+    ]
+}
