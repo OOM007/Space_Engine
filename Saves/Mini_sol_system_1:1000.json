@@ -1,0 +1,88 @@
+{
+    "planets": [
+        {
+            "Position": [0, 0],
+            "Vector": [0, 0],
+            "Mass": 1.9885e+27,
+            "type": "star",
+            "size": 696342,
+            "ID": "Sol"
+        },
+        {
+            "Position": [46000000, 0],
+            "Vector": [0, 58970],
+            "Mass": 3.3011e+20,
+            "type": "planet",
+            "size": 2439,
+            "ID": "Mercury"
+        },
+        {
+            "Position": [107476259, 0],
+            "Vector": [0, 35260],
+            "Mass": 4.8685e+21,
+            "type": "planet",
+            "size": 6051,
+            "ID": "Venus"
+        },
+        {
+            "Position": [147098450, 0],
+            "Vector": [0, 30290],
+            "Mass": 5.972168e+21,
+            "type": "planet",
+            "size": 6371,
+            "ID": "Earth"
+        },
+        {
+            "Position": [147461554, 0],
+            "Vector": [0, 31372],
+            "Mass": 7.3477e+19,
+            "type": "planet",
+            "size": 1737,
+            "ID": "Moon"
+        },
+        {
+            "Position": [206669000, 0],
+            "Vector": [0, 26500],
+            "Mass": 6.4185e+20,
+            "type": "planet",
+            "size": 3396,
+            "ID": "Mars"
+        },
+        {
+            "Position": [740000000, 0],
+            "Vector": [0, 13720],
+            "Mass": 1.8986e+24,
+            "type": "planet",
+            "size": 69911,
+            "ID": "Jupiter"
+        },
+        {
+            "Position": [1353572956, 0],
+            "Vector": [0, 10140],
+            "Mass": 5.6846e+23,
+            "type": "planet",
+            "size": 60268,
+            "ID": "Saturn"
+        },
+        {
+            "Position": [2748938461, 0],
+            "Vector": [0, 7130],
+            "Mass": 8.6810e+22,
+            "type": "planet",
+            "size": 25559,
+            "ID": "Uranus"
+        },
+        {
+            "Position": [4452940833, 0],
+            "Vector": [0, 5470],
+            "Mass": 1.0243e+23,
+            "type": "planet",
+            "size": 24764,
+            "ID": "Neptune"
+        }
+    ],
+
+    "settings": [
+
+    ]
+}
