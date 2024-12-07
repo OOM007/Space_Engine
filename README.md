@@ -3,6 +3,12 @@ Simple space dynamic engine
 
 This is an early alpha version, in future I will add more parameters and functions.
 
+### What is thу main idea
+I created this tool to help teach how space objects interact with each other.
+
+### How to set up and start?
+You shuold have installed pygame and numpy libraries for Python. Then, just download this code, open in any Code IDE and start main script.
+
 ### How to add body to simulation
 Due to the fact that this is not yet a finished program, most of the parameters are changed by changing the code or save files.
 
